@@ -76,7 +76,7 @@ const RegisterScreen: React.FC = () => {
       setAddress('');
       setPassword('');
       setConfirmPassword('');
-      navigation.navigate('Login');
+      navigation.navigate('MainTabs', { screen: 'LoginTab' });
     });
   };
 
@@ -175,7 +175,7 @@ const RegisterScreen: React.FC = () => {
           <View style={styles.switchRow}>
             <Text style={styles.switchText}>Đã có tài khoản?</Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'LoginTab' })}
             >
               <Text style={styles.switchLink}>Đăng nhập tại đây</Text>
             </TouchableOpacity>

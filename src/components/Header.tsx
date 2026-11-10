@@ -182,13 +182,13 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
             <View style={styles.guestButtons}>
               <TouchableOpacity
                 style={styles.loginBtn}
-                onPress={() => navigation.navigate('Login')}
+                onPress={() => navigation.navigate('MainTabs', { screen: 'LoginTab' })}
               >
                 <Text style={styles.loginBtnText}>Đăng nhập</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.signupBtn}
-                onPress={() => navigation.navigate('Register')}
+                onPress={() => navigation.navigate('MainTabs', { screen: 'SignupTab' })}
               >
                 <Text style={styles.signupBtnText}>Đăng ký</Text>
               </TouchableOpacity>

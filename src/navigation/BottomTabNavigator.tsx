@@ -86,7 +86,30 @@ const BottomTabNavigator: React.FC = () => {
         },
       }}
     >
-      {isAdmin ? (
+      {!currentUser ? (
+        <>
+          <Tab.Screen
+            name="UserHomeTab"
+            component={HomeScreen}
+            options={{ tabBarLabel: 'Homepage' }}
+          />
+          <Tab.Screen
+            name="ProductsTab"
+            component={ProductsScreen}
+            options={{ tabBarLabel: 'Sản phẩm' }}
+          />
+          <Tab.Screen
+            name="SignupTab"
+            component={RegisterScreen}
+            options={{ tabBarLabel: 'Sign Up' }}
+          />
+          <Tab.Screen
+            name="LoginTab"
+            component={LoginScreen}
+            options={{ tabBarLabel: 'Sign In' }}
+          />
+        </>
+      ) : isAdmin ? (
         <>
           <Tab.Screen
             name="UserHomeTab"
@@ -114,14 +137,9 @@ const BottomTabNavigator: React.FC = () => {
             })}
           />
           <Tab.Screen
-            name="SignupTab"
-            component={RegisterScreen}
-            options={{ tabBarLabel: 'Signup' }}
-          />
-          <Tab.Screen
-            name="LoginTab"
-            component={LoginScreen}
-            options={{ tabBarLabel: 'Login' }}
+            name="AccountTab"
+            component={AccountScreen}
+            options={{ tabBarLabel: 'Cá nhân' }}
           />
         </>
       ) : (

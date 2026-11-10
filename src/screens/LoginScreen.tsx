@@ -215,7 +215,7 @@ const LoginScreen: React.FC = () => {
           <View style={styles.switchRow}>
             <Text style={styles.switchText}>Chưa có tài khoản?</Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'SignupTab' })}
             >
               <Text style={styles.switchLink}>Đăng ký tài khoản mới</Text>
             </TouchableOpacity>

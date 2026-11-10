@@ -60,7 +60,9 @@ const AccountScreen: React.FC = () => {
         await notifyAuthChanged();
         setCurrentUser(null);
         setHeaderKey((prev) => prev + 1);
-        showAlert('Đã đăng xuất', 'Đã đăng xuất tài khoản thành công!');
+        showAlert('Đã đăng xuất', 'Đã đăng xuất tài khoản thành công!', () => {
+          navigation.navigate('MainTabs', { screen: 'UserHomeTab' });
+        });
       }
     );
   };
@@ -146,16 +148,27 @@ const AccountScreen: React.FC = () => {
               </TouchableOpacity>
 
               {currentUser.role === 'admin' && (
-                <TouchableOpacity
-                  style={[styles.actionBtn, styles.adminPanelBtn]}
-                  onPress={() =>
-                    navigation.navigate('MainTabs', { screen: 'AdminHomeTab' })
-                  }
-                >
-                  <Text style={styles.actionBtnText}>
-                    VÀO TRANG CHỦ QUẢN TRỊ (ADMIN)
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.adminPanelBtn]}
+                    onPress={() =>
+                      navigation.navigate('MainTabs', { screen: 'AdminHomeTab' })
+                    }
+                  >
+                    <Text style={styles.actionBtnText}>
+                      VÀO TRANG CHỦ QUẢN TRỊ (ADMIN)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.orderBtn]}
+                    onPress={() => navigation.navigate('AdminOrders')}
+                  >
+                    <Text style={styles.actionBtnText}>
+                      QUẢN TRỊ ĐƠN HÀNG HỆ THỐNG
+                    </Text>
+                  </TouchableOpacity>
+                </>
               )}
 
               <TouchableOpacity
