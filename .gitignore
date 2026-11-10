@@ -1,0 +1,26 @@
+# Dependencies & Expo
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# 4 File Agent Memory & Quy tắc AI
+AGENTS.md
+project_memory/
+project_memory/constraints.md
+project_memory/prompts.md
+project_memory/history.md
+constraints.md
+prompts.md
+history.md
+
+# File Word (.docx) & Script xuất Word
+*.docx
+btvnBuoi14.docx
+export_*.js
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+*.log
