@@ -8,6 +8,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +17,7 @@ import {
   fetchCartItems,
   getCurrentUser,
   createOrder,
+  getProductImageSource,
   CartItem,
   User,
 } from '../data/database';
@@ -207,16 +209,26 @@ const CheckoutScreen: React.FC = () => {
 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>
-            3. TÓM TẮT ĐƠN HÀNG ({cartItems.length} MÓN)
+            3. SẢN PHẨM TRONG ĐƠN HÀNG ({cartItems.length} MÓN)
           </Text>
           {cartItems.map((item) => (
-            <View key={item.productId} style={styles.summaryRow}>
-              <Text style={styles.summaryItemName} numberOfLines={1}>
-                {item.productName} (x{item.quantity})
-              </Text>
-              <Text style={styles.summaryItemPrice}>
-                {formatPrice(item.price * item.quantity)}
-              </Text>
+            <View key={item.productId} style={styles.summaryItemCard}>
+              <Image
+                source={getProductImageSource(item.img)}
+                style={styles.summaryItemImage}
+                resizeMode="cover"
+              />
+              <View style={styles.summaryItemInfo}>
+                <Text style={styles.summaryItemName} numberOfLines={2}>
+                  {item.productName}
+                </Text>
+                <Text style={styles.summaryItemSub}>
+                  Đơn giá: {formatPrice(item.price)} | Số lượng: x{item.quantity}
+                </Text>
+                <Text style={styles.summaryItemPrice}>
+                  Thành tiền: {formatPrice(item.price * item.quantity)}
+                </Text>
+              </View>
             </View>
           ))}
 
@@ -306,21 +318,41 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     fontWeight: 'bold',
   },
-  summaryRow: {
+  summaryItemCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 8,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryItemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    marginRight: 10,
+  },
+  summaryItemInfo: {
+    flex: 1,
   },
   summaryItemName: {
-    flex: 1,
     fontSize: 13,
-    color: '#334155',
-    marginRight: 10,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  summaryItemSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 2,
   },
   summaryItemPrice: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: '#DC2626',
   },
   divider: {
     height: 1,

@@ -193,50 +193,40 @@ const AdminOrdersScreen: React.FC = () => {
                 ) : null}
               </View>
 
+              <View style={styles.itemsContainer}>
+                <Text style={styles.itemsSectionLabel}>
+                  HÌNH ẢNH & DANH SÁCH SẢN PHẨM TRONG ĐƠN ({item.items.length} SP):
+                </Text>
+                {item.items.map((prod, idx) => (
+                  <View key={idx} style={styles.itemRow}>
+                    <Image
+                      source={getProductImageSource(prod.img)}
+                      style={styles.itemThumb}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.itemInfoCol}>
+                      <Text style={styles.itemName} numberOfLines={2}>
+                        {prod.productName}
+                      </Text>
+                      <Text style={styles.itemSub}>
+                        Đơn giá: {formatPrice(prod.price)} | Số lượng: x{prod.quantity}
+                      </Text>
+                      <Text style={styles.itemSubtotalText}>
+                        Thành tiền: {formatPrice(prod.price * prod.quantity)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
               <View style={styles.totalRow}>
                 <Text style={styles.itemCountText}>
-                  Số mặt hàng: {item.items.length} SP
+                  Tổng số lượng: {item.items.reduce((s, i) => s + i.quantity, 0)} sản phẩm
                 </Text>
                 <Text style={styles.totalPriceText}>
                   Tổng tiền: {formatPrice(item.totalAmount)}
                 </Text>
               </View>
-
-              <TouchableOpacity
-                style={styles.detailToggleBtn}
-                onPress={() =>
-                  setExpandedOrderId(isExpanded ? null : item.id)
-                }
-              >
-                <Text style={styles.detailToggleText}>
-                  {isExpanded
-                    ? 'Thu gọn chi tiết sản phẩm'
-                    : `Xem chi tiết ${item.items.length} sản phẩm trong đơn`}
-                </Text>
-              </TouchableOpacity>
-
-              {isExpanded && (
-                <View style={styles.itemsContainer}>
-                  {item.items.map((prod, idx) => (
-                    <View key={idx} style={styles.itemRow}>
-                      <Image
-                        source={getProductImageSource(prod.img)}
-                        style={styles.itemThumb}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.itemInfoCol}>
-                        <Text style={styles.itemName} numberOfLines={1}>
-                          {prod.productName}
-                        </Text>
-                        <Text style={styles.itemSub}>
-                          {formatPrice(prod.price)} x {prod.quantity} ={' '}
-                          {formatPrice(prod.price * prod.quantity)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
 
               <View style={styles.updateSection}>
                 <Text style={styles.updateLabel}>
@@ -433,15 +423,26 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     marginBottom: 10,
   },
+  itemsSectionLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#475569',
+    marginBottom: 8,
+  },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     marginBottom: 8,
   },
   itemThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 6,
+    width: 60,
+    height: 60,
+    borderRadius: 8,
     backgroundColor: '#E2E8F0',
     marginRight: 10,
   },
@@ -450,12 +451,18 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#1E293B',
   },
   itemSub: {
     fontSize: 12,
     color: '#64748B',
+    marginTop: 2,
+  },
+  itemSubtotalText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#DC2626',
     marginTop: 2,
   },
   updateSection: {

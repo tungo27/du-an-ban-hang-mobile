@@ -5,6 +5,7 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,6 +13,8 @@ import { RootStackParamList } from '../types/navigation';
 import {
   fetchOrders,
   getCurrentUser,
+  getProductImageSource,
+  getProductById,
   Order,
 } from '../data/database';
 import { formatPrice } from '../utils/formatPrice';
@@ -47,6 +50,15 @@ const OrderHistoryScreen: React.FC = () => {
       loadOrders();
     }, [loadOrders])
   );
+
+  const handleOpenProduct = async (productId: number) => {
+    const product = await getProductById(productId);
+    if (product) {
+      navigation.navigate('ProductDetail', { product });
+    } else {
+      navigation.navigate('Products', {});
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -103,43 +115,93 @@ const OrderHistoryScreen: React.FC = () => {
         renderItem={({ item }) => {
           return (
             <View style={styles.orderCard}>
-              <View style={styles.orderTopRow}>
-                <Text style={styles.orderId}>MÃ ĐƠN: #{item.id}</Text>
+              <View style={styles.shopHeaderRow}>
+                <View style={styles.shopBadgeRow}>
+                  <View style={styles.mallBadge}>
+                    <Text style={styles.mallBadgeText}>Yêu thích+</Text>
+                  </View>
+                  <Text style={styles.shopNameText}>Ngô Minh Tú Store</Text>
+                </View>
                 <View style={styles.statusBadge}>
                   <Text style={styles.statusText}>{item.status}</Text>
                 </View>
               </View>
 
-              <Text style={styles.metaText}>Ngày đặt: {item.createdAt}</Text>
-              <Text style={styles.metaText}>
-                Người nhận: {item.customerName} - SĐT: {item.phone}
-              </Text>
-              <Text style={styles.metaText}>
-                Địa chỉ: {item.address}
-              </Text>
-              <Text style={styles.metaText}>
-                Thanh toán: {item.paymentMethod}
-              </Text>
+              <View style={styles.orderTopRow}>
+                <Text style={styles.orderId}>MÃ ĐƠN HÀNG: #{item.id}</Text>
+                <Text style={styles.orderDate}>{item.createdAt}</Text>
+              </View>
 
               <View style={styles.divider} />
-              <Text style={styles.itemsHeader}>Danh sách sản phẩm đã mua:</Text>
+              <Text style={styles.itemsHeader}>
+                Sản phẩm trong đơn hàng ({(item.items || []).length} sản phẩm):
+              </Text>
               {(item.items || []).map((prod, idx) => (
-                <View key={idx} style={styles.itemRow}>
-                  <Text style={styles.itemName}>
-                    - {prod.productName} (x{prod.quantity})
-                  </Text>
-                  <Text style={styles.itemPrice}>
-                    {formatPrice(prod.price * prod.quantity)}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.shopeeItemCard}
+                  activeOpacity={0.85}
+                  onPress={() => handleOpenProduct(prod.productId)}
+                >
+                  <Image
+                    source={getProductImageSource(prod.img)}
+                    style={styles.itemImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.itemDetailBox}>
+                    <Text style={styles.itemName} numberOfLines={2}>
+                      {prod.productName}
+                    </Text>
+                    <Text style={styles.itemVariantText}>
+                      Phân loại: Chính hãng - Ngô Minh Tú Store
+                    </Text>
+                    <View style={styles.itemPriceQtyRow}>
+                      <Text style={styles.unitPriceText}>
+                        Đơn giá: {formatPrice(prod.price)}
+                      </Text>
+                      <Text style={styles.itemQtyBadge}>x{prod.quantity}</Text>
+                    </View>
+                    <Text style={styles.itemPrice}>
+                      Thành tiền: {formatPrice(prod.price * prod.quantity)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               ))}
 
               <View style={styles.divider} />
+              <View style={styles.receiverBox}>
+                <Text style={styles.metaText}>
+                  Người nhận: {item.customerName} - SĐT: {item.phone}
+                </Text>
+                <Text style={styles.metaText}>
+                  Địa chỉ giao: {item.address}
+                </Text>
+                <Text style={styles.metaText}>
+                  Thanh toán: {item.paymentMethod}
+                </Text>
+              </View>
+
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Tổng tiền đơn hàng:</Text>
+                <Text style={styles.totalLabel}>
+                  Tổng số tiền ({(item.items || []).reduce((s, i) => s + i.quantity, 0)} sản phẩm):
+                </Text>
                 <Text style={styles.totalValue}>
                   {formatPrice(item.totalAmount)}
                 </Text>
+              </View>
+
+              <View style={styles.orderFooterActions}>
+                <TouchableOpacity
+                  style={styles.rebuyBtn}
+                  onPress={() => {
+                    const first = (item.items || [])[0];
+                    if (first) {
+                      handleOpenProduct(first.productId);
+                    }
+                  }}
+                >
+                  <Text style={styles.rebuyBtnText}>Xem sản phẩm / Mua lại</Text>
+                </TouchableOpacity>
               </View>
             </View>
           );
@@ -219,12 +281,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
+  },
+  shopHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  shopBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  mallBadge: {
+    backgroundColor: '#EE4D2D',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  mallBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  shopNameText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#1E293B',
   },
   orderId: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#1E3A8A',
+  },
+  orderDate: {
+    fontSize: 11,
+    color: '#64748B',
   },
   statusBadge: {
     backgroundColor: '#DCFCE7',
@@ -236,6 +332,14 @@ const styles = StyleSheet.create({
     color: '#16A34A',
     fontSize: 11,
     fontWeight: 'bold',
+  },
+  receiverBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
   },
   metaText: {
     fontSize: 12,
@@ -251,23 +355,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#334155',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  itemRow: {
+  shopeeItemCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  itemImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    marginRight: 10,
+  },
+  itemDetailBox: {
+    flex: 1,
   },
   itemName: {
     fontSize: 13,
-    color: '#334155',
-    flex: 1,
-    marginRight: 8,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  itemVariantText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  itemPriceQtyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  unitPriceText: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  itemQtyBadge: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E293B',
   },
   itemPrice: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1E293B',
+    fontWeight: 'bold',
+    color: '#EE4D2D',
+    textAlign: 'right',
   },
   totalRow: {
     flexDirection: 'row',
@@ -283,6 +423,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#DC2626',
+  },
+  orderFooterActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+  },
+  rebuyBtn: {
+    backgroundColor: '#EE4D2D',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  rebuyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   emptyBox: {
     padding: 36,

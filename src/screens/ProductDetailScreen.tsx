@@ -37,7 +37,14 @@ const ProductDetailScreen: React.FC = () => {
   const [categoryName, setCategoryName] = useState<string>('Đang tải...');
   const [quantity, setQuantity] = useState<number>(1);
   const [imgError, setImgError] = useState<boolean>(false);
+  const [selectedGalleryImg, setSelectedGalleryImg] = useState<string>('');
   const [headerKey, setHeaderKey] = useState<number>(0);
+
+  const ORDER_PACKAGING_IMAGES = [
+    'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=500&q=80',
+    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=500&q=80',
+    'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500&q=80',
+  ];
 
   useEffect(() => {
     const initDetail = async () => {
@@ -49,6 +56,7 @@ const ProductDetailScreen: React.FC = () => {
         setProduct(currentProd);
       }
       if (currentProd) {
+        setSelectedGalleryImg(currentProd.img);
         const cats: Category[] = await fetchCategories();
         const found = cats.find((c) => c.id === currentProd!.categoryId);
         setCategoryName(found ? found.name : 'Danh mục khác');
@@ -97,12 +105,55 @@ const ProductDetailScreen: React.FC = () => {
           source={
             imgError
               ? require('../../assets/images/hinh1.jpg')
-              : getProductImageSource(product.img)
+              : getProductImageSource(selectedGalleryImg || product.img)
           }
           style={styles.image}
           resizeMode="cover"
           onError={() => setImgError(true)}
         />
+        <View style={styles.shopeeMallTag}>
+          <Text style={styles.shopeeMallTagText}>
+            Yêu thích+ | Ngô Minh Tú Store
+          </Text>
+        </View>
+      </View>
+
+      {/* Album ảnh sản phẩm & hình ảnh đóng gói đơn hàng thực tế giống Shopee */}
+      <View style={styles.gallerySection}>
+        <Text style={styles.galleryLabel}>
+          Hình ảnh sản phẩm & quy cách đóng gói đơn hàng (Chạm để xem):
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.galleryRow}
+        >
+          {[product.img, ...ORDER_PACKAGING_IMAGES].map((imgUri, idx) => {
+            const isSelected = (selectedGalleryImg || product.img) === imgUri;
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={[
+                  styles.galleryThumbWrap,
+                  isSelected && styles.galleryThumbWrapActive,
+                ]}
+                onPress={() => {
+                  setImgError(false);
+                  setSelectedGalleryImg(imgUri);
+                }}
+              >
+                <Image
+                  source={getProductImageSource(imgUri)}
+                  style={styles.galleryThumb}
+                  resizeMode="cover"
+                />
+                <Text style={styles.galleryThumbCaption}>
+                  {idx === 0 ? 'Ảnh SP' : `Đơn hàng #${idx}`}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <View style={styles.card}>
@@ -186,6 +237,46 @@ const ProductDetailScreen: React.FC = () => {
             </View>
           </>
         )}
+
+        <View style={styles.divider} />
+
+        {/* Phần Đánh giá & Hình ảnh thực tế đơn hàng đã giao giống Shopee */}
+        <View style={styles.reviewSection}>
+          <View style={styles.reviewHeaderRow}>
+            <Text style={styles.sectionLabel}>
+              HÌNH ẢNH ĐƠN HÀNG THỰC TẾ TỪ KHÁCH MUA ({product.rating ?? 4.9}/5)
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('OrderHistory')}>
+              <Text style={styles.viewOrdersLink}>Xem đơn mua của tôi</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.reviewItemCard}>
+            <Text style={styles.reviewerName}>
+              Khách hàng: Ngô Minh Tú — Đã mua hàng tại Ngô Minh Tú Store
+            </Text>
+            <Text style={styles.reviewComment}>
+              Đơn hàng đóng gói hộp cẩn thận, giao hàng nhanh, đúng mẫu &quot;{product.name}&quot;, chất vải và form dáng chuẩn như hình!
+            </Text>
+            <View style={styles.reviewImagesRow}>
+              <Image
+                source={getProductImageSource(product.img)}
+                style={styles.reviewOrderImg}
+                resizeMode="cover"
+              />
+              <Image
+                source={getProductImageSource(ORDER_PACKAGING_IMAGES[0])}
+                style={styles.reviewOrderImg}
+                resizeMode="cover"
+              />
+              <Image
+                source={getProductImageSource(ORDER_PACKAGING_IMAGES[1])}
+                style={styles.reviewOrderImg}
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -204,6 +295,109 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  shopeeMallTag: {
+    position: 'absolute',
+    bottom: 10,
+    left: 12,
+    backgroundColor: '#EE4D2D',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  shopeeMallTagText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  gallerySection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  galleryLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  galleryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  galleryThumbWrap: {
+    width: 68,
+    alignItems: 'center',
+    padding: 3,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  galleryThumbWrapActive: {
+    borderColor: '#EE4D2D',
+    backgroundColor: '#FFF7ED',
+  },
+  galleryThumb: {
+    width: 58,
+    height: 54,
+    borderRadius: 6,
+    backgroundColor: '#E2E8F0',
+  },
+  galleryThumbCaption: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#334155',
+    marginTop: 3,
+  },
+  reviewSection: {
+    marginTop: 2,
+  },
+  reviewHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  viewOrdersLink: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2563EB',
+  },
+  reviewItemCard: {
+    backgroundColor: '#F8FAFC',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  reviewerName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  reviewComment: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  reviewImagesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  reviewOrderImg: {
+    width: 68,
+    height: 68,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   card: {
     backgroundColor: '#FFFFFF',

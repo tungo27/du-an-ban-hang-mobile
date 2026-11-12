@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  ScrollView,
 } from 'react-native';
 import {
   useNavigation,
@@ -20,12 +22,16 @@ import { RootStackParamList } from '../types/navigation';
 import {
   fetchCategories,
   searchAndFilterProducts,
+  fetchOrders,
+  getProductImageSource,
   addToCart,
   getCurrentUser,
   Category,
   Product,
+  Order,
   User,
 } from '../data/database';
+import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
 import CategorySelector from '../components/CategorySelector';
 import ProductCard from '../components/ProductCard';
@@ -40,6 +46,7 @@ const ProductsScreen: React.FC = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(
     route.params?.categoryId
@@ -63,14 +70,16 @@ const ProductsScreen: React.FC = () => {
       minP?: number,
       maxP?: number
     ) => {
-      const [cats, prods, user] = await Promise.all([
+      const [cats, prods, user, allOrders] = await Promise.all([
         fetchCategories(),
         searchAndFilterProducts(kw, catId, minP, maxP),
         getCurrentUser(),
+        fetchOrders(),
       ]);
       setCategories(cats);
       setProducts(prods);
       setCurrentUser(user);
+      setRecentOrders(allOrders.slice(0, 5));
     },
     []
   );
@@ -320,9 +329,75 @@ const ProductsScreen: React.FC = () => {
 
       <View style={styles.resultRow}>
         <Text style={styles.resultText}>
-          Hiển thị {products.length} sản phẩm phù hợp
+          Hiển thị {products.length} sản phẩm Áo Quần & Giày Dép
         </Text>
       </View>
+
+      {/* KHỐI HÌNH ẢNH ĐƠN HÀNG TRÊN TRANG SẢN PHẨM (GIỐNG SHOPEE) */}
+      {recentOrders.length > 0 && (
+        <View style={styles.shopeeOrderSection}>
+          <View style={styles.shopeeOrderHeader}>
+            <View style={styles.shopeeTitleRow}>
+              <View style={styles.shopeeMallTag}>
+                <Text style={styles.shopeeMallTagText}>Shopee Style</Text>
+              </View>
+              <Text style={styles.shopeeOrderTitle}>
+                HÌNH ẢNH ĐƠN HÀNG ĐÃ ĐẶT ({recentOrders.length})
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate(isAdmin ? 'AdminOrders' : 'OrderHistory')
+              }
+            >
+              <Text style={styles.shopeeSeeOrdersText}>
+                {isAdmin ? 'Quản trị đơn >' : 'Xem Đơn mua >'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.shopeeOrderScroll}
+          >
+            {recentOrders.map((ord) => {
+              const firstItem = (ord.items || [])[0];
+              return (
+                <TouchableOpacity
+                  key={ord.id}
+                  style={styles.shopeeOrderCard}
+                  activeOpacity={0.85}
+                  onPress={() =>
+                    navigation.navigate(isAdmin ? 'AdminOrders' : 'OrderHistory')
+                  }
+                >
+                  <Image
+                    source={getProductImageSource(firstItem?.img)}
+                    style={styles.shopeeOrderThumb}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.shopeeOrderInfo}>
+                    <View style={styles.shopeeOrderTopLine}>
+                      <Text style={styles.shopeeOrderCode}>Đơn #{ord.id}</Text>
+                      <Text style={styles.shopeeOrderStatus}>{ord.status}</Text>
+                    </View>
+                    <Text style={styles.shopeeOrderProdName} numberOfLines={1}>
+                      {firstItem ? firstItem.productName : 'Đơn hàng thời trang'}
+                    </Text>
+                    <Text style={styles.shopeeOrderMeta}>
+                      {(ord.items || []).length} mặt hàng • Tổng:{' '}
+                      <Text style={styles.shopeeOrderTotal}>
+                        {formatPrice(ord.totalAmount)}
+                      </Text>
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 
@@ -486,6 +561,101 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: '#334155',
+  },
+  shopeeOrderSection: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+  },
+  shopeeOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  shopeeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shopeeMallTag: {
+    backgroundColor: '#EE4D2D',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  shopeeMallTagText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  shopeeOrderTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  shopeeSeeOrdersText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#EE4D2D',
+  },
+  shopeeOrderScroll: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  shopeeOrderCard: {
+    width: 265,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7ED',
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#FDBA74',
+  },
+  shopeeOrderThumb: {
+    width: 58,
+    height: 58,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    marginRight: 10,
+  },
+  shopeeOrderInfo: {
+    flex: 1,
+  },
+  shopeeOrderTopLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  shopeeOrderCode: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E3A8A',
+  },
+  shopeeOrderStatus: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#16A34A',
+  },
+  shopeeOrderProdName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  shopeeOrderMeta: {
+    fontSize: 11,
+    color: '#475569',
+  },
+  shopeeOrderTotal: {
+    fontWeight: 'bold',
+    color: '#EE4D2D',
   },
   emptyBox: {
     padding: 32,
