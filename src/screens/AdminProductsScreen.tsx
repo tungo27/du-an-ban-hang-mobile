@@ -215,7 +215,7 @@ const AdminProductsScreen: React.FC = () => {
               <Text style={styles.label}>Tên sản phẩm (*)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ví dụ: Balo Laptop Ngô Minh Tú Pro"
+                placeholder="Ví dụ: Giày Sneaker Ngô Minh Tú Pro"
                 placeholderTextColor="#94A3B8"
                 value={name}
                 onChangeText={setName}

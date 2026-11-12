@@ -222,7 +222,7 @@ const AdminCategoriesScreen: React.FC = () => {
               <Text style={styles.label}>Tên loại sản phẩm (*)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ví dụ: Đồng hồ Ngô Minh Tú"
+                placeholder="Ví dụ: Giày Dép Nam Ngô Minh Tú"
                 placeholderTextColor="#94A3B8"
                 value={catName}
                 onChangeText={setCatName}

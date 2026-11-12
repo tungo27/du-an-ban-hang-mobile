@@ -64,97 +64,97 @@ export type Order = {
   items: OrderItem[];
 };
 
-// Danh sách ảnh mẫu tiện lợi để chọn nhanh khi thêm/sửa Loại hoặc Sản phẩm
+// Danh sách ảnh mẫu tiện lợi (chuyên Áo, Quần, Giày, Dép) để chọn nhanh khi thêm/sửa Loại hoặc Sản phẩm
 export const PRESET_IMAGES = [
   {
     label: 'Áo sơ mi',
     value: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
   },
   {
-    label: 'Giày Sneaker',
-    value: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
-  },
-  {
-    label: 'Balo Laptop',
-    value: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
-  },
-  {
-    label: 'Mũ lưỡi trai',
-    value: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&q=80',
-  },
-  {
-    label: 'Túi xách da',
-    value: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80',
-  },
-  {
     label: 'Áo thun',
     value: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
   },
   {
-    label: 'Quần Jeans',
-    value: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
-  },
-  {
-    label: 'Đồng hồ',
-    value: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
+    label: 'Áo Polo',
+    value: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?w=500&q=80',
   },
   {
     label: 'Áo khoác',
     value: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
   },
   {
-    label: 'Kính mát',
-    value: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80',
+    label: 'Áo Hoodie',
+    value: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+  },
+  {
+    label: 'Quần Jeans',
+    value: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
+  },
+  {
+    label: 'Quần Kaki',
+    value: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80',
+  },
+  {
+    label: 'Quần Short',
+    value: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=500&q=80',
+  },
+  {
+    label: 'Giày Sneaker',
+    value: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
+  },
+  {
+    label: 'Dép & Sandal',
+    value: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=500&q=80',
   },
 ];
 
-// Dữ liệu mẫu danh mục mở rộng (8 danh mục đa dạng tại Ngô Minh Tú Store)
+// Dữ liệu mẫu danh mục chuyên biệt Áo, Quần, Giày, Dép (8 danh mục tại Ngô Minh Tú Store)
 const initialCategories: Category[] = [
   {
     id: 1,
-    name: 'Áo Thời Trang',
+    name: 'Áo Sơ Mi & Polo',
     img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&q=80',
   },
   {
     id: 2,
-    name: 'Giày Thể Thao',
-    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
+    name: 'Áo Thun & Tanktop',
+    img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300&q=80',
   },
   {
     id: 3,
-    name: 'Balo & Cặp',
-    img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&q=80',
-  },
-  {
-    id: 4,
-    name: 'Mũ & Nón',
-    img: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=300&q=80',
-  },
-  {
-    id: 5,
-    name: 'Túi Xách & Ví',
-    img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=300&q=80',
-  },
-  {
-    id: 6,
-    name: 'Quần Jeans & Kaki',
-    img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=300&q=80',
-  },
-  {
-    id: 7,
     name: 'Áo Khoác & Hoodie',
     img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&q=80',
   },
   {
+    id: 4,
+    name: 'Quần Jeans & Denim',
+    img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=300&q=80',
+  },
+  {
+    id: 5,
+    name: 'Quần Kaki & Quần Âu',
+    img: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=300&q=80',
+  },
+  {
+    id: 6,
+    name: 'Quần Short & Jogger',
+    img: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=300&q=80',
+  },
+  {
+    id: 7,
+    name: 'Giày Sneaker & Thể Thao',
+    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
+  },
+  {
     id: 8,
-    name: 'Đồng Hồ & Phụ Kiện',
-    img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&q=80',
+    name: 'Dép, Sandal & Giày Lười',
+    img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=300&q=80',
   },
 ];
 
-// Dữ liệu mẫu sản phẩm phong phú (28 sản phẩm trải rộng các phân khúc giá từ 95.000đ đến 1.890.000đ)
+// Dữ liệu mẫu sản phẩm 100% Áo, Quần, Giày, Dép (28 sản phẩm trải rộng các phân khúc giá)
 const initialProducts: Product[] = [
-  // --- Danh mục 1: Áo Thời Trang ---
+  // --- Danh mục 1: Áo Sơ Mi & Polo ---
   {
     id: 1,
     name: 'Áo sơ mi Oxford Slimfit Minh Tú',
@@ -168,17 +168,6 @@ const initialProducts: Product[] = [
   },
   {
     id: 2,
-    name: 'Áo thun Cotton Basic Unisex Minh Tú',
-    price: 165000,
-    img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
-    categoryId: 1,
-    description:
-      'Áo thun cổ tròn form suông rộng rãi, vải 100% Cotton 2 chiều dày dặn 250gsm, thấm hút mồ hôi tốt, không xù lông.',
-    rating: 4.8,
-    soldCount: 680,
-  },
-  {
-    id: 3,
     name: 'Áo Polo Nam Pique Cao Cấp Minh Tú',
     price: 295000,
     img: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?w=500&q=80',
@@ -189,7 +178,7 @@ const initialProducts: Product[] = [
     soldCount: 310,
   },
   {
-    id: 4,
+    id: 3,
     name: 'Áo sơ mi Linen Cộc Tay Mùa Hè',
     price: 220000,
     img: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80',
@@ -199,195 +188,184 @@ const initialProducts: Product[] = [
     rating: 4.7,
     soldCount: 195,
   },
+  {
+    id: 4,
+    name: 'Áo sơ mi Kẻ Sọc Công Sở Minh Tú',
+    price: 275000,
+    img: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=500&q=80',
+    categoryId: 1,
+    description:
+      'Áo sơ mi dài tay họa tiết kẻ sọc thanh lịch, vải sợi tre Bamboo kháng khuẩn và giữ form chuẩn suốt ngày dài.',
+    rating: 4.9,
+    soldCount: 260,
+  },
 
-  // --- Danh mục 2: Giày Thể Thao ---
+  // --- Danh mục 2: Áo Thun & Tanktop ---
   {
     id: 5,
-    name: 'Giày Sneaker Retro Red Sport Minh Tú',
-    price: 1100000,
-    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
+    name: 'Áo thun Cotton Basic Unisex Minh Tú',
+    price: 165000,
+    img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
     categoryId: 2,
     description:
-      'Giày thể thao nam nữ phong cách năng động, đế đệm khí êm ái chống trơn trượt, trọng lượng siêu nhẹ thích hợp chạy bộ.',
-    rating: 4.9,
-    soldCount: 540,
+      'Áo thun cổ tròn form suông rộng rãi, vải 100% Cotton 2 chiều dày dặn 250gsm, thấm hút mồ hôi tốt, không xù lông.',
+    rating: 4.8,
+    soldCount: 680,
   },
   {
     id: 6,
-    name: 'Giày Sneaker Trắng Classic Minimalist',
-    price: 650000,
-    img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=80',
+    name: 'Áo thun Oversize Streetwear Minh Tú',
+    price: 195000,
+    img: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&q=80',
     categoryId: 2,
     description:
-      'Giày Sneaker da microfiber trắng tinh tế, dễ phối cùng quần jeans, quần âu hoặc chân váy, đế cao su đúc nguyên khối.',
-    rating: 4.8,
-    soldCount: 490,
+      'Áo phông đen form rộng tay lỡ phong cách Streetwear trẻ trung, chất thun cotton co giãn 4 chiều mát lạnh.',
+    rating: 4.9,
+    soldCount: 530,
   },
   {
     id: 7,
-    name: 'Giày Chạy Bộ UltraBoost Pro Minh Tú',
-    price: 1450000,
-    img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500&q=80',
+    name: 'Áo thun Thể Thao Dry-Fit Thoáng Khí',
+    price: 145000,
+    img: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=500&q=80',
     categoryId: 2,
     description:
-      'Giày chạy bộ chuyên nghiệp với thân vải dệt Primeknit ôm chân thoáng khí và đế hoàn trả năng lượng vượt trội.',
-    rating: 5.0,
-    soldCount: 275,
-  },
-  {
-    id: 8,
-    name: 'Giày Lười Canvas Streetwear',
-    price: 380000,
-    img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&q=80',
-    categoryId: 2,
-    description:
-      'Giày vải Canvas bền đẹp, thiết kế trẻ trung tiện lợi xỏ chân nhanh chóng cho sinh viên và dân văn phòng.',
-    rating: 4.7,
-    soldCount: 360,
-  },
-
-  // --- Danh mục 3: Balo & Cặp ---
-  {
-    id: 9,
-    name: 'Balo Laptop Chống Nước 15.6 inch Minh Tú',
-    price: 490000,
-    img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
-    categoryId: 3,
-    description:
-      'Balo công sở và du lịch nhiều ngăn tiện lợi, tích hợp cổng sạc USB, chất vải Oxford chống thấm nước tối ưu.',
-    rating: 4.8,
-    soldCount: 330,
-  },
-  {
-    id: 10,
-    name: 'Balo Du Lịch Phượt Đa Năng 40L',
-    price: 680000,
-    img: 'https://images.unsplash.com/photo-1622560480605-d83c853bc5c3?w=500&q=80',
-    categoryId: 3,
-    description:
-      'Balo du lịch dung tích lớn 40L có đệm lưng thoáng khí, đai trợ lực ngực và hông giúp di chuyển đường dài thoải mái.',
-    rating: 4.9,
-    soldCount: 180,
-  },
-  {
-    id: 11,
-    name: 'Balo Mini Thời Trang Hàn Quốc',
-    price: 260000,
-    img: 'https://images.unsplash.com/photo-1581605405669-fcdf81165afa?w=500&q=80',
-    categoryId: 3,
-    description:
-      'Balo nhỏ gọn xinh xắn đựng vừa iPad, sổ tay và phụ kiện cá nhân khi đi học thêm hoặc dạo phố.',
+      'Áo thun thể thao công nghệ dệt lỗ thoáng khí Dry-Fit siêu nhẹ, nhanh khô khi chạy bộ hoặc tập luyện thể thao.',
     rating: 4.7,
     soldCount: 410,
   },
+  {
+    id: 8,
+    name: 'Áo Tanktop Tập Gym Nam Co Giãn',
+    price: 120000,
+    img: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?w=500&q=80',
+    categoryId: 2,
+    description:
+      'Áo ba lỗ Tanktop năng động khỏe khoắn, chất vải thun lạnh thoáng mát chuyên dụng cho tập Gym và vận động ngoài trời.',
+    rating: 4.8,
+    soldCount: 345,
+  },
 
-  // --- Danh mục 4: Mũ & Nón ---
+  // --- Danh mục 3: Áo Khoác & Hoodie ---
+  {
+    id: 9,
+    name: 'Áo Khoác Da Biker Jacket Ngô Minh Tú',
+    price: 1250000,
+    img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
+    categoryId: 3,
+    description:
+      'Áo khoác da phong cách Biker mạnh mẽ tại Ngô Minh Tú Store, lớp lót lụa mịn bên trong chắn gió giữ ấm tuyệt vời.',
+    rating: 4.9,
+    soldCount: 165,
+  },
+  {
+    id: 10,
+    name: 'Áo Hoodie Nỉ Bông Oversize Minh Tú',
+    price: 340000,
+    img: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+    categoryId: 3,
+    description:
+      'Áo Hoodie nỉ ngoại dày dặn ấm áp, mũ 2 lớp đứng form, túi kangaroo phía trước rộng rãi.',
+    rating: 4.8,
+    soldCount: 620,
+  },
+  {
+    id: 11,
+    name: 'Áo Khoác Gió 2 Lớp Chống Tia UV',
+    price: 275000,
+    img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80',
+    categoryId: 3,
+    description:
+      'Áo khoác dù 2 lớp trượt nước nhẹ, chống nắng UPF50+, gấp gọn dễ dàng mang theo mỗi ngày.',
+    rating: 4.8,
+    soldCount: 740,
+  },
   {
     id: 12,
-    name: 'Mũ lưỡi trai Phong Cách Vintage Minh Tú',
-    price: 120000,
-    img: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&q=80',
-    categoryId: 4,
+    name: 'Áo Khoác Bomber Kaki Lót Dù Minh Tú',
+    price: 450000,
+    img: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=500&q=80',
+    categoryId: 3,
     description:
-      'Mũ lưỡi trai chất liệu kaki cotton mềm thấm hút mồ hôi, khóa đồng phía sau dễ dàng điều chỉnh kích cỡ.',
-    rating: 4.7,
-    soldCount: 520,
-  },
-  {
-    id: 13,
-    name: 'Mũ Bucket Vành Tròn Streetwear',
-    price: 135000,
-    img: 'https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=500&q=80',
-    categoryId: 4,
-    description:
-      'Nón tai bèo Bucket 2 mặt đội cực chất, che nắng tốt khi đi biển, dã ngoại và chụp ảnh ngoài trời.',
-    rating: 4.6,
+      'Áo khoác Bomber cổ bo dệt gân khỏe khoắn, khóa kéo đồng mượt mà kèm túi tay áo tiện dụng.',
+    rating: 4.9,
     soldCount: 290,
   },
-  {
-    id: 14,
-    name: 'Mũ Thể Thao Chống Nắng Siêu Nhẹ',
-    price: 95000,
-    img: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=500&q=80',
-    categoryId: 4,
-    description:
-      'Mũ thể thao vải dù lỗ thoáng khí chuyên dụng cho chạy bộ, đánh cầu lông, tennis ngoài trời.',
-    rating: 4.8,
-    soldCount: 615,
-  },
 
-  // --- Danh mục 5: Túi Xách & Ví ---
+  // --- Danh mục 4: Quần Jeans & Denim ---
   {
-    id: 15,
-    name: 'Túi xách da nữ Cao Cấp Ngô Minh Tú',
-    price: 980000,
-    img: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=500&q=80',
-    categoryId: 5,
-    description:
-      'Túi xách da PU cao cấp bề mặt mềm mịn, khóa mạ vàng sang trọng, kiểu dáng thanh lịch phân phối bởi Ngô Minh Tú Store.',
-    rating: 5.0,
-    soldCount: 245,
-  },
-  {
-    id: 16,
-    name: 'Túi Đeo Chéo Nam Da Bò Saffiano',
-    price: 550000,
-    img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&q=80',
-    categoryId: 5,
-    description:
-      'Túi đeo chéo ngực nam chất liệu da chống xước, chống thấm nước nhẹ, thiết kế tối giản hiện đại.',
-    rating: 4.8,
-    soldCount: 310,
-  },
-  {
-    id: 17,
-    name: 'Ví Da Nam Cầm Tay Bifold Minh Tú',
-    price: 195000,
-    img: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&q=80',
-    categoryId: 5,
-    description:
-      'Ví da nam dáng ngang nhỏ gọn với 8 ngăn đựng thẻ ATM, 2 ngăn tiền mặt và đường chỉ khâu tay tỉ mỉ.',
-    rating: 4.9,
-    soldCount: 730,
-  },
-  {
-    id: 18,
-    name: 'Túi Tote Vải Canvas In Chữ Minh Tú',
-    price: 110000,
-    img: 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=500&q=80',
-    categoryId: 5,
-    description:
-      'Túi vải Tote thân thiện môi trường, có khóa kéo miệng túi và ngăn nhỏ bên trong, đựng vừa laptop 14 inch.',
-    rating: 4.7,
-    soldCount: 840,
-  },
-
-  // --- Danh mục 6: Quần Jeans & Kaki ---
-  {
-    id: 19,
+    id: 13,
     name: 'Quần Jeans Nam Slimfit Co Giãn Minh Tú',
     price: 420000,
     img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
-    categoryId: 6,
+    categoryId: 4,
     description:
       'Quần Jeans denim xanh chàm co giãn nhẹ, giữ form tốt, không phai màu khi giặt máy.',
     rating: 4.8,
     soldCount: 390,
   },
   {
-    id: 20,
+    id: 14,
+    name: 'Quần Jeans Ống Suông Straight Ngô Minh Tú',
+    price: 460000,
+    img: 'https://images.unsplash.com/photo-1604176354204-9268737828e4?w=500&q=80',
+    categoryId: 4,
+    description:
+      'Quần bò ống đứng form Straight cổ điển che khuyết điểm tốt, chất vải Denim dày dặn bền bỉ.',
+    rating: 4.9,
+    soldCount: 315,
+  },
+  {
+    id: 15,
+    name: 'Quần Jeans Đen Tuyền Basic Minh Tú',
+    price: 395000,
+    img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80',
+    categoryId: 4,
+    description:
+      'Quần Jeans màu đen tuyền dễ phối cùng áo sơ mi, áo thun và giày sneaker cho mọi dịp đi học, đi làm.',
+    rating: 4.7,
+    soldCount: 440,
+  },
+
+  // --- Danh mục 5: Quần Kaki & Quần Âu ---
+  {
+    id: 16,
     name: 'Quần Kaki Công Sở Chống Nhăn Minh Tú',
     price: 350000,
     img: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80',
-    categoryId: 6,
+    categoryId: 5,
     description:
       'Quần dài Kaki ống đứng lịch sự, chất vải cotton pha spandex mềm mại, thoải mái khi ngồi làm việc cả ngày.',
     rating: 4.8,
     soldCount: 460,
   },
   {
-    id: 21,
-    name: 'Quần Short Kaki Nam Mùa Hè',
+    id: 17,
+    name: 'Quần Âu Nam Sidetab Lịch Lãm Minh Tú',
+    price: 480000,
+    img: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&q=80',
+    categoryId: 5,
+    description:
+      'Quần tây nam thiết kế Sidetab điều chỉnh vòng eo tinh tế, ly quần sắc nét tôn dáng sang trọng.',
+    rating: 4.9,
+    soldCount: 280,
+  },
+  {
+    id: 18,
+    name: 'Quần Kaki Túi Hộp Cargo Streetwear',
+    price: 370000,
+    img: 'https://images.unsplash.com/photo-1517445312882-bc9910d016b7?w=500&q=80',
+    categoryId: 5,
+    description:
+      'Quần dài Kaki túi hộp 2 bên hông năng động bụi bặm, chất vải kaki dày dặn co giãn nhẹ.',
+    rating: 4.8,
+    soldCount: 335,
+  },
+
+  // --- Danh mục 6: Quần Short & Jogger ---
+  {
+    id: 19,
+    name: 'Quần Short Kaki Nam Mùa Hè Minh Tú',
     price: 185000,
     img: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=500&q=80',
     categoryId: 6,
@@ -396,90 +374,112 @@ const initialProducts: Product[] = [
     rating: 4.7,
     soldCount: 510,
   },
+  {
+    id: 20,
+    name: 'Quần Jogger Nỉ Thể Thao Bo Gấu Minh Tú',
+    price: 260000,
+    img: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=500&q=80',
+    categoryId: 6,
+    description:
+      'Quần Jogger thun nỉ da cá co giãn 4 chiều, bo ống gọn gàng tôn dáng khi phối cùng giày thể thao.',
+    rating: 4.8,
+    soldCount: 395,
+  },
+  {
+    id: 21,
+    name: 'Quần Short Thể Thao Chạy Bộ 2 Lớp',
+    price: 140000,
+    img: 'https://images.unsplash.com/photo-1562183241-b937e95585b6?w=500&q=80',
+    categoryId: 6,
+    description:
+      'Quần đùi gió thể thao siêu nhẹ có túi khóa kéo chống rơi điện thoại khi chạy bộ, đá bóng.',
+    rating: 4.8,
+    soldCount: 615,
+  },
 
-  // --- Danh mục 7: Áo Khoác & Hoodie ---
+  // --- Danh mục 7: Giày Sneaker & Thể Thao ---
   {
     id: 22,
-    name: 'Áo Khoác Da Biker Jacket Ngô Minh Tú',
-    price: 1250000,
-    img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
+    name: 'Giày Sneaker Retro Red Sport Minh Tú',
+    price: 1100000,
+    img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
     categoryId: 7,
     description:
-      'Áo khoác da phong cách Biker mạnh mẽ, lớp lót lụa mịn bên trong chắn gió giữ ấm tuyệt vời.',
+      'Giày thể thao nam nữ phong cách năng động, đế đệm khí êm ái chống trơn trượt, trọng lượng siêu nhẹ thích hợp chạy bộ.',
     rating: 4.9,
-    soldCount: 165,
+    soldCount: 540,
   },
   {
     id: 23,
-    name: 'Áo Hoodie Nỉ Bông Oversize Minh Tú',
-    price: 340000,
-    img: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+    name: 'Giày Sneaker Trắng Classic Minimalist',
+    price: 650000,
+    img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=80',
     categoryId: 7,
     description:
-      'Áo Hoodie nỉ ngoại dày dặn ấm áp, mũ 2 lớp đứng form, túi kangaroo phía trước rộng rãi.',
+      'Giày Sneaker da microfiber trắng tinh tế, dễ phối cùng quần jeans, quần âu hoặc quần short, đế cao su đúc nguyên khối.',
     rating: 4.8,
-    soldCount: 620,
+    soldCount: 490,
   },
   {
     id: 24,
-    name: 'Áo Khoác Gió 2 Lớp Chống Tia UV',
-    price: 275000,
-    img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80',
+    name: 'Giày Chạy Bộ UltraBoost Pro Minh Tú',
+    price: 1450000,
+    img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500&q=80',
     categoryId: 7,
     description:
-      'Áo khoác dù 2 lớp trượt nước nhẹ, chống nắng UPF50+, gấp gọn dễ dàng bỏ vào cốp xe hoặc balo.',
-    rating: 4.8,
-    soldCount: 740,
+      'Giày chạy bộ chuyên nghiệp với thân vải dệt Primeknit ôm chân thoáng khí và đế hoàn trả năng lượng vượt trội.',
+    rating: 5.0,
+    soldCount: 275,
   },
-
-  // --- Danh mục 8: Đồng Hồ & Phụ Kiện ---
   {
     id: 25,
-    name: 'Đồng Hồ Nam Quartz Dây Da Minh Tú',
-    price: 1890000,
-    img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
-    categoryId: 8,
+    name: 'Giày Thể Thao Cổ Cao High-Top Minh Tú',
+    price: 790000,
+    img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=500&q=80',
+    categoryId: 7,
     description:
-      'Đồng hồ mặt kính Sapphire chống trầy xước, máy Quartz Nhật Bản chính xác, chống nước 5ATM.',
-    rating: 5.0,
-    soldCount: 215,
+      'Giày Sneaker cổ cao cá tính phối màu trẻ trung, đệm cổ chân êm ái bảo vệ cổ chân khi vận động.',
+    rating: 4.9,
+    soldCount: 320,
   },
+
+  // --- Danh mục 8: Dép, Sandal & Giày Lười ---
   {
     id: 26,
-    name: 'Kính Mát Phân Cực Polarized UV400',
-    price: 320000,
-    img: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&q=80',
+    name: 'Giày Lười Canvas Slip-On Minh Tú',
+    price: 380000,
+    img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&q=80',
     categoryId: 8,
     description:
-      'Kính râm thời trang tròng Polarized chống chói lóa và bảo vệ mắt khỏi 100% tia cực tím UV400.',
-    rating: 4.8,
-    soldCount: 380,
+      'Giày lười vải Canvas bền đẹp, thiết kế không dây xỏ chân nhanh chóng tiện lợi cho sinh viên và dân văn phòng.',
+    rating: 4.7,
+    soldCount: 360,
   },
   {
     id: 27,
-    name: 'Thắt Lưng Da Bò Khóa Tự Động Minh Tú',
-    price: 240000,
-    img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
+    name: 'Dép Quai Ngang Đế Đúc Êm Chân Minh Tú',
+    price: 150000,
+    img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=500&q=80',
     categoryId: 8,
     description:
-      'Dây lưng nam da bò thật nguyên miếng, mặt khóa hợp kim chống gỉ sét sang trọng lịch lãm.',
+      'Dép lê quai ngang chất liệu EVA nguyên sinh siêu nhẹ, chống thấm nước và chống trơn trượt tuyệt đối.',
     rating: 4.9,
-    soldCount: 450,
+    soldCount: 890,
   },
   {
     id: 28,
-    name: 'Combo 5 Đôi Tất Thể Thao Cổ Ngắn',
-    price: 99000,
-    img: 'https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?w=500&q=80',
+    name: 'Dép Sandal Quai Hậu Đi Học Đi Biển',
+    price: 245000,
+    img: 'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?w=500&q=80',
     categoryId: 8,
     description:
-      'Tất vớ cotton kháng khuẩn khử mùi, co giãn 4 chiều êm chân khi mang giày sneaker cả ngày.',
-    rating: 4.9,
-    soldCount: 950,
+      'Giày dép Sandal quai dù chắc chắn, khóa dán điều chỉnh linh hoạt, đế cao su bám đường cực tốt.',
+    rating: 4.8,
+    soldCount: 640,
   },
 ];
 
-// Đơn hàng mẫu khởi tạo sẵn để kiểm tra nhanh Lịch sử đơn hàng & Quản trị đơn hàng của Admin
+// Đơn hàng mẫu khởi tạo sẵn (chỉ gồm Áo, Quần, Giày, Dép) để kiểm tra nhanh Lịch sử đơn hàng & Quản trị đơn hàng của Admin
 const initialOrders: Order[] = [
   {
     id: 1001,
@@ -489,7 +489,7 @@ const initialOrders: Order[] = [
     address: '68 Điện Biên Phủ, Thanh Khê, Đà Nẵng',
     note: 'Giao giờ hành chính giúp mình',
     paymentMethod: 'COD (Thanh toán khi nhận hàng)',
-    totalAmount: 740000,
+    totalAmount: 670000,
     status: 'Chờ xác nhận',
     createdAt: '09/11/2026 14:20',
     items: [
@@ -501,10 +501,10 @@ const initialOrders: Order[] = [
         quantity: 1,
       },
       {
-        productId: 9,
-        productName: 'Balo Laptop Chống Nước 15.6 inch Minh Tú',
-        price: 490000,
-        img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
+        productId: 13,
+        productName: 'Quần Jeans Nam Slimfit Co Giãn Minh Tú',
+        price: 420000,
+        img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
         quantity: 1,
       },
     ],
@@ -522,7 +522,7 @@ const initialOrders: Order[] = [
     createdAt: '10/11/2026 08:15',
     items: [
       {
-        productId: 5,
+        productId: 22,
         productName: 'Giày Sneaker Retro Red Sport Minh Tú',
         price: 1100000,
         img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
@@ -567,14 +567,14 @@ const initialUsers: User[] = [
 ];
 
 const ASYNC_KEYS = {
-  CATEGORIES: '@minhtu_categories_b14_v3',
-  PRODUCTS: '@minhtu_products_b14_v3',
-  USERS: '@minhtu_users_b14_v3',
-  CURRENT_USER: '@minhtu_current_user_b14_v3',
-  CART: '@minhtu_cart_b14_v3',
-  CART_GUEST: '@minhtu_cart_guest_b14_v3',
-  CART_USER_PREFIX: '@minhtu_cart_user_b14_v3_',
-  ORDERS: '@minhtu_orders_b14_v3',
+  CATEGORIES: '@minhtu_categories_b14_v4',
+  PRODUCTS: '@minhtu_products_b14_v4',
+  USERS: '@minhtu_users_b14_v4',
+  CURRENT_USER: '@minhtu_current_user_b14_v4',
+  CART: '@minhtu_cart_b14_v4',
+  CART_GUEST: '@minhtu_cart_guest_b14_v4',
+  CART_USER_PREFIX: '@minhtu_cart_user_b14_v4_',
+  ORDERS: '@minhtu_orders_b14_v4',
 };
 
 // ==================== KHỞI TẠO CƠ SỞ DỮ LIỆU ====================
@@ -582,7 +582,7 @@ const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
   if (useAsyncStorageFallback) return null;
   if (db) return db;
   try {
-    db = await SQLite.openDatabaseAsync('minhTuStore_b14_v3.db');
+    db = await SQLite.openDatabaseAsync('minhTuStore_b14_v4.db');
     await db.execAsync('PRAGMA foreign_keys = ON;');
     return db;
   } catch (err) {

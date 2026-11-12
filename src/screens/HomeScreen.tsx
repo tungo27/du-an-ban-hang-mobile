@@ -287,7 +287,7 @@ const HomeScreen: React.FC = () => {
         <View style={styles.bannerOverlay}>
           <Text style={styles.bannerTitle}>NGÔ MINH TÚ STORE - BỘ SƯU TẬP MỚI</Text>
           <Text style={styles.bannerSub}>
-            Thời trang & Phụ kiện chính hãng - Giao hàng toàn quốc
+            Chuyên Áo Quần & Giày Dép thời trang chính hãng - Giao hàng toàn quốc
           </Text>
         </View>
       </View>
