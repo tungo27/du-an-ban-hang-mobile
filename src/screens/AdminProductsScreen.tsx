@@ -456,26 +456,48 @@ const AdminProductsScreen: React.FC = () => {
             </View>
           </View>
         }
-        renderSectionHeader={({ section }) => (
-          <TouchableOpacity
-            style={styles.sectionHeader}
-            activeOpacity={0.85}
-            onPress={() => toggleSection(section.key)}
-          >
-            <Ionicons name={section.icon} size={16} color={section.color} />
-            <Text style={[styles.sectionTitle, { color: section.color }]}>
-              {section.title}
-            </Text>
-            <View style={styles.sectionCountBadge}>
-              <Text style={styles.sectionCountText}>{section.count}</Text>
+        renderSectionHeader={({ section }) => {
+          const isCollapsed = !!collapsed[section.key];
+          return (
+            <View style={styles.sectionHeader}>
+              <TouchableOpacity
+                style={styles.sectionHeaderMain}
+                activeOpacity={0.85}
+                onPress={() => toggleSection(section.key)}
+              >
+                <Ionicons name={section.icon} size={16} color={section.color} />
+                <Text style={[styles.sectionTitle, { color: section.color }]}>
+                  {section.title}
+                </Text>
+                <View style={styles.sectionCountBadge}>
+                  <Text style={styles.sectionCountText}>{section.count}</Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.expandBtn,
+                  isCollapsed ? styles.expandBtnCollapsed : styles.expandBtnExpanded,
+                ]}
+                activeOpacity={0.85}
+                onPress={() => toggleSection(section.key)}
+              >
+                <Ionicons
+                  name={isCollapsed ? 'chevron-down' : 'chevron-up'}
+                  size={13}
+                  color={isCollapsed ? '#1D4ED8' : '#475569'}
+                />
+                <Text
+                  style={[
+                    styles.expandBtnText,
+                    isCollapsed ? styles.expandBtnTextCollapsed : styles.expandBtnTextExpanded,
+                  ]}
+                >
+                  {isCollapsed ? 'Expand' : 'Collapse'}
+                </Text>
+              </TouchableOpacity>
             </View>
-            <Ionicons
-              name={collapsed[section.key] ? 'chevron-down' : 'chevron-up'}
-              size={16}
-              color="#64748B"
-            />
-          </TouchableOpacity>
-        )}
+          );
+        }}
         renderItem={({ item }) => {
           const isDeleted = Number(item.isDeleted ?? 0) === 1;
           const stockQty = Number(item.stock ?? 0);
@@ -659,17 +681,45 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
     backgroundColor: '#F1F5F9',
     marginHorizontal: 12,
     marginTop: 10,
     marginBottom: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingLeft: 12,
+    paddingRight: 8,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
+  sectionHeaderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  expandBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  expandBtnCollapsed: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  expandBtnExpanded: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#CBD5E1',
+  },
+  expandBtnText: { fontSize: 11, fontWeight: 'bold' },
+  expandBtnTextCollapsed: { color: '#1D4ED8' },
+  expandBtnTextExpanded: { color: '#475569' },
   sectionTitle: { flex: 1, fontSize: 13, fontWeight: 'bold' },
   sectionCountBadge: {
     backgroundColor: '#FFFFFF',

@@ -18,6 +18,7 @@ import {
   getCurrentUser,
   getProductImageSource,
   isAdminRole,
+  canCancelOrder,
   ORDER_STATUSES,
   Order,
   User,
@@ -87,6 +88,14 @@ const AdminOrdersScreen: React.FC = () => {
 
   const handleChangeOrderStatus = (order: Order, nextStatus: string) => {
     if (order.status === nextStatus) return;
+
+    if (nextStatus === 'Cancelled' && !canCancelOrder(order.status)) {
+      showAlert(
+        'Cancellation Locked',
+        `Order #${order.id} is already "${order.status}", so it can no longer be cancelled.`
+      );
+      return;
+    }
 
     showConfirm(
       'Update Order Status',
@@ -249,6 +258,7 @@ const AdminOrdersScreen: React.FC = () => {
                   {ORDER_STATUSES.map((st) => {
                     const isCurrent = item.status === st;
                     const stMeta = getStatusMeta(st);
+                    const isLocked = st === 'Cancelled' && !canCancelOrder(item.status);
                     return (
                       <TouchableOpacity
                         key={st}
@@ -258,18 +268,25 @@ const AdminOrdersScreen: React.FC = () => {
                             backgroundColor: stMeta.color,
                             borderColor: stMeta.color,
                           },
+                          isLocked && styles.statusOptionBtnLocked,
                         ]}
+                        disabled={isCurrent || isLocked}
                         onPress={() => handleChangeOrderStatus(item, st)}
                       >
                         <Ionicons
-                          name={STATUS_ICONS[st] || 'ellipse-outline'}
+                          name={
+                            isLocked
+                              ? 'lock-closed-outline'
+                              : STATUS_ICONS[st] || 'ellipse-outline'
+                          }
                           size={11}
-                          color={isCurrent ? '#FFFFFF' : '#475569'}
+                          color={isCurrent ? '#FFFFFF' : isLocked ? '#94A3B8' : '#475569'}
                         />
                         <Text
                           style={[
                             styles.statusOptionText,
                             isCurrent && styles.statusOptionTextActive,
+                            isLocked && styles.statusOptionTextLocked,
                           ]}
                         >
                           {st}
@@ -278,6 +295,14 @@ const AdminOrdersScreen: React.FC = () => {
                     );
                   })}
                 </View>
+                {!canCancelOrder(item.status) && item.status !== 'Cancelled' && (
+                  <View style={styles.lockNoteRow}>
+                    <Ionicons name="lock-closed-outline" size={11} color="#B45309" />
+                    <Text style={styles.lockNoteText}>
+                      Order is already "{item.status}" - cancellation is no longer available.
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           );
@@ -436,8 +461,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
+  statusOptionBtnLocked: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
   statusOptionText: { fontSize: 11, fontWeight: 'bold', color: '#334155' },
   statusOptionTextActive: { color: '#FFFFFF' },
+  statusOptionTextLocked: { color: '#94A3B8' },
+  lockNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 8,
+  },
+  lockNoteText: { flex: 1, fontSize: 11, color: '#B45309', fontStyle: 'italic' },
   emptyBox: { padding: 32, alignItems: 'center' },
   emptyText: { fontSize: 13, color: '#64748B', marginTop: 8 },
 });

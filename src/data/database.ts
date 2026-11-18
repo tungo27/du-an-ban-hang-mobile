@@ -96,6 +96,12 @@ export const ORDER_STATUSES = [
   'Cancelled',
 ] as const;
 
+// An order may only be cancelled before the courier picks it up (Shipping).
+export const CANCELLABLE_ORDER_STATUSES = ['Pending', 'Confirmed'] as const;
+
+export const canCancelOrder = (status?: string | null): boolean =>
+  !!status && (CANCELLABLE_ORDER_STATUSES as readonly string[]).includes(status);
+
 export const isAdminRole = (role?: string | null): boolean =>
   role === 'admin' || role === 'superadmin';
 
@@ -1931,6 +1937,14 @@ export const updateOrderStatus = async (
   newStatus: string
 ): Promise<boolean> => {
   try {
+    // Business rule: once an order is Shipping or later, it cannot be cancelled.
+    if (newStatus === 'Cancelled') {
+      const current = (await fetchOrders()).find((o) => o.id === orderId);
+      if (!current || !canCancelOrder(current.status)) {
+        return false;
+      }
+    }
+
     const database = await getDb();
     if (database) {
       await database.runAsync('UPDATE orders SET status = ? WHERE id = ?', [
@@ -1949,6 +1963,52 @@ export const updateOrderStatus = async (
   } catch (error) {
     console.error('[updateOrderStatus] Error:', error);
     return false;
+  }
+};
+
+// Customer-facing cancellation: only Pending / Confirmed orders, stock is returned.
+export const cancelOrder = async (
+  orderId: number,
+  userId?: number
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const orders = await fetchOrders();
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) {
+      return { success: false, message: 'Order not found.' };
+    }
+    if (userId !== undefined && order.userId !== userId) {
+      return { success: false, message: 'You can only cancel your own orders.' };
+    }
+    if (order.status === 'Cancelled') {
+      return { success: false, message: 'This order has already been cancelled.' };
+    }
+    if (!canCancelOrder(order.status)) {
+      return {
+        success: false,
+        message: `Order #${order.id} is already "${order.status}" and can no longer be cancelled.`,
+      };
+    }
+
+    const updated = await updateOrderStatus(order.id, 'Cancelled');
+    if (!updated) {
+      return { success: false, message: 'Could not cancel the order. Please try again.' };
+    }
+
+    for (const item of order.items) {
+      const prod = await getProductById(item.productId);
+      if (prod) {
+        await updateProductStock(
+          prod.id,
+          Number(prod.stock ?? 0) + Number(item.quantity || 0)
+        );
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('[cancelOrder] Error:', error);
+    return { success: false, message: 'Could not cancel the order. Please try again.' };
   }
 };
 

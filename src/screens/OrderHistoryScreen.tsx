@@ -17,12 +17,15 @@ import {
   getCurrentUser,
   getProductImageSource,
   isAdminRole,
+  canCancelOrder,
+  cancelOrder,
   ORDER_STATUSES,
   Order,
   User,
 } from '../data/database';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
+import { showAlert, showConfirm } from '../utils/alertHelper';
 
 type FilterValue = 'All' | (typeof ORDER_STATUSES)[number];
 
@@ -85,6 +88,33 @@ const OrderHistoryScreen: React.FC = () => {
       : orders.filter((order) => order.status === statusFilter);
 
   const isAdmin = isAdminRole(currentUser?.role);
+
+  const handleCancelOrder = (order: Order) => {
+    if (!canCancelOrder(order.status)) {
+      showAlert(
+        'Cancellation Locked',
+        `Order #${order.id} is already "${order.status}" and can no longer be cancelled.`
+      );
+      return;
+    }
+
+    showConfirm(
+      'Cancel Order',
+      `Cancel order #${order.id} (${formatPrice(order.totalAmount)})? Items will be returned to stock.`,
+      async () => {
+        const result = await cancelOrder(
+          order.id,
+          isAdmin ? undefined : currentUser?.id
+        );
+        if (result.success) {
+          await loadOrders();
+          showAlert('Order Cancelled', `Order #${order.id} has been cancelled.`);
+        } else {
+          showAlert('Cancellation Failed', result.message || 'Please try again.');
+        }
+      }
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -268,6 +298,22 @@ const OrderHistoryScreen: React.FC = () => {
                   <Ionicons name="eye-outline" size={14} color="#2563EB" />
                   <Text style={styles.detailBtnText}>View Product</Text>
                 </TouchableOpacity>
+                {canCancelOrder(item.status) ? (
+                  <TouchableOpacity
+                    style={styles.cancelOrderBtn}
+                    onPress={() => handleCancelOrder(item)}
+                  >
+                    <Ionicons name="close-circle-outline" size={14} color="#DC2626" />
+                    <Text style={styles.cancelOrderBtnText}>Cancel Order</Text>
+                  </TouchableOpacity>
+                ) : item.status === 'Shipping' ? (
+                  <View style={styles.lockedNote}>
+                    <Ionicons name="lock-closed-outline" size={12} color="#94A3B8" />
+                    <Text style={styles.lockedNoteText}>
+                      Shipping in progress - cannot cancel
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           );
@@ -421,8 +467,25 @@ const styles = StyleSheet.create({
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 10,
   },
+  cancelOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 6,
+  },
+  cancelOrderBtnText: { fontSize: 12, fontWeight: 'bold', color: '#DC2626' },
+  lockedNote: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  lockedNoteText: { fontSize: 11, color: '#94A3B8', fontStyle: 'italic' },
   detailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
