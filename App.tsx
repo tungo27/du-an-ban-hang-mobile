@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -19,13 +19,24 @@ import AdminCategoriesScreen from './src/screens/AdminCategoriesScreen';
 import AdminProductsScreen from './src/screens/AdminProductsScreen';
 import AdminOrdersScreen from './src/screens/AdminOrdersScreen';
 import FloatingCartButton from './src/components/FloatingCartButton';
+import { getLeafRouteName, navigationRef } from './src/navigation/navigationRef';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  const [activeRoute, setActiveRoute] = useState<string | undefined>(undefined);
+
+  const syncActiveRoute = useCallback(() => {
+    setActiveRoute(getLeafRouteName(navigationRef.getRootState()));
+  }, []);
+
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={syncActiveRoute}
+        onStateChange={syncActiveRoute}
+      >
         <StatusBar style="light" />
         <Stack.Navigator
           initialRouteName="MainTabs"
@@ -106,7 +117,7 @@ export default function App() {
             options={{ title: 'Order Management' }}
           />
         </Stack.Navigator>
-        <FloatingCartButton />
+        <FloatingCartButton routeName={activeRoute} />
       </NavigationContainer>
     </SafeAreaProvider>
   );

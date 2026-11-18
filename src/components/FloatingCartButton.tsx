@@ -1,41 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types/navigation';
 import {
   getCartItemCount,
   getCurrentUser,
   isAdminRole,
   subscribeAuthChanged,
 } from '../data/database';
+import { navigationRef } from '../navigation/navigationRef';
 
-const getLeafRouteName = (state: any): string | undefined => {
-  if (!state || !Array.isArray(state.routes) || state.routes.length === 0) {
-    return undefined;
-  }
-  const index =
-    typeof state.index === 'number' ? state.index : state.routes.length - 1;
-  const route = state.routes[index];
-  if (!route) return undefined;
-  if (route.state) {
-    return getLeafRouteName(route.state) ?? route.name;
-  }
-  return route.name;
-};
+interface FloatingCartButtonProps {
+  /** Name of the currently focused route, tracked by App.tsx. */
+  routeName?: string;
+}
 
 /**
  * Floating cart bubble that stays on top of every screen.
  * It is hidden only on the Account tab (and for admin accounts that cannot shop).
  */
-const FloatingCartButton: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({ routeName }) => {
   const insets = useSafeAreaInsets();
   const [cartCount, setCartCount] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const routeName = useNavigationState((state) => getLeafRouteName(state));
 
   const refresh = useCallback(async () => {
     try {
@@ -71,12 +58,15 @@ const FloatingCartButton: React.FC = () => {
       style={[
         styles.cartBubble,
         {
-          bottom:
-            insets.bottom > 0 ? insets.bottom + 74 : 86,
+          bottom: insets.bottom > 0 ? insets.bottom + 74 : 86,
         },
       ]}
       activeOpacity={0.85}
-      onPress={() => navigation.navigate('Cart')}
+      onPress={() => {
+        if (navigationRef.isReady()) {
+          navigationRef.navigate('Cart');
+        }
+      }}
       accessibilityLabel="Open cart"
     >
       <Ionicons name="cart" size={24} color="#FFFFFF" />
