@@ -18,11 +18,18 @@ import {
   fetchCartItems,
   getCurrentUser,
   createOrder,
+  getCartItemKey,
   getProductImageSource,
   isAdminRole,
+  OWNER_ADDRESS,
+  OWNER_PHONE,
   CartItem,
   User,
 } from '../data/database';
+import {
+  clearCheckoutSelection,
+  getCheckoutSelection,
+} from '../data/checkoutSelection';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
 import { showAlert } from '../utils/alertHelper';
@@ -73,12 +80,18 @@ const CheckoutScreen: React.FC = () => {
           );
           return;
         }
-        setCartItems(items);
+        const selectedKeys = getCheckoutSelection();
+        const chosenItems =
+          selectedKeys && selectedKeys.length > 0
+            ? items.filter((item) => selectedKeys.includes(getCartItemKey(item)))
+            : items;
+
+        setCartItems(chosenItems.length > 0 ? chosenItems : items);
         setCurrentUser(user);
         setRecipientName((prev) => prev || user.fullName);
-        setRecipientPhone((prev) => prev || user.phone || '0988123456');
+        setRecipientPhone((prev) => prev || user.phone || OWNER_PHONE);
         setRecipientAddress(
-          (prev) => prev || user.address || 'Hai Chau, Da Nang (Ngo Minh Tu)'
+          (prev) => prev || user.address || OWNER_ADDRESS
         );
       });
     }, [navigation])
@@ -174,7 +187,7 @@ const CheckoutScreen: React.FC = () => {
           <Text style={styles.label}>Recipient name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Ngo Minh Tu"
+            placeholder="e.g. Ngô Minh Tú"
             placeholderTextColor="#94A3B8"
             value={recipientName}
             onChangeText={setRecipientName}
@@ -183,7 +196,7 @@ const CheckoutScreen: React.FC = () => {
           <Text style={styles.label}>Phone number (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
+            placeholder="e.g. 0988666888 (Ngô Minh Tú)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={recipientPhone}
@@ -193,7 +206,7 @@ const CheckoutScreen: React.FC = () => {
           <Text style={styles.label}>Delivery address (*)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="e.g. 123 Nguyen Van Linh, Da Nang (Ngo Minh Tu)"
+            placeholder="e.g. 99 Tô Hiến Thành, Đà Nẵng (Ngô Minh Tú)"
             placeholderTextColor="#94A3B8"
             multiline
             value={recipientAddress}
@@ -250,7 +263,10 @@ const CheckoutScreen: React.FC = () => {
             </Text>
           </View>
           {cartItems.map((item) => (
-            <View key={item.productId} style={styles.summaryItemCard}>
+            <View
+              key={`${item.productId}-${item.size || 'NOSIZE'}`}
+              style={styles.summaryItemCard}
+            >
               <Image
                 source={getProductImageSource(item.img)}
                 style={styles.summaryItemImage}
@@ -260,6 +276,9 @@ const CheckoutScreen: React.FC = () => {
                 <Text style={styles.summaryItemName} numberOfLines={2}>
                   {item.productName}
                 </Text>
+                {!!item.size && (
+                  <Text style={styles.summaryItemSize}>Size: {item.size}</Text>
+                )}
                 <Text style={styles.summaryItemSub}>
                   {formatPrice(item.price)} x{item.quantity}
                 </Text>
@@ -381,6 +400,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: '#1E293B',
+    marginBottom: 2,
+  },
+  summaryItemSize: {
+    fontSize: 11,
+    color: '#1E3A8A',
+    fontWeight: '600',
     marginBottom: 2,
   },
   summaryItemSub: { fontSize: 11, color: '#64748B', marginBottom: 2 },

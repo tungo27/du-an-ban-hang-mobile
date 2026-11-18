@@ -345,7 +345,7 @@ const OrderHistoryScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
-  listContent: { paddingBottom: 24 },
+  listContent: { flexGrow: 1, paddingBottom: 0 },
   headerBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',

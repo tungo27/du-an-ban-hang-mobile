@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
-import { registerUser } from '../data/database';
+import { registerUser, OWNER_ADDRESS, OWNER_PHONE } from '../data/database';
 import Header from '../components/Header';
 import { showAlert } from '../utils/alertHelper';
 
@@ -55,8 +55,8 @@ const RegisterScreen: React.FC = () => {
       password: password.trim(),
       fullName: fullName.trim(),
       email: email.trim(),
-      phone: phone.trim() || '0905123456',
-      address: address.trim() || 'Da Nang - TuTu Store',
+      phone: phone.trim() || OWNER_PHONE,
+      address: address.trim() || OWNER_ADDRESS,
     });
 
     if (!res.success) {
@@ -101,7 +101,7 @@ const RegisterScreen: React.FC = () => {
           <Text style={styles.label}>Full name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Ngo Minh Tu"
+            placeholder="e.g. Ngô Minh Tú"
             placeholderTextColor="#94A3B8"
             value={fullName}
             onChangeText={setFullName}
@@ -131,7 +131,7 @@ const RegisterScreen: React.FC = () => {
           <Text style={styles.label}>Phone number</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
+            placeholder="e.g. 0988666888 (Ngô Minh Tú)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={phone}
@@ -141,7 +141,7 @@ const RegisterScreen: React.FC = () => {
           <Text style={styles.label}>Delivery address</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Ngo Minh Tu - Hai Chau, Da Nang"
+            placeholder="e.g. 99 Tô Hiến Thành, Đà Nẵng (Ngô Minh Tú)"
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}

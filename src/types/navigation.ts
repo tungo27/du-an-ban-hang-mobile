@@ -14,6 +14,7 @@ export type RootStackParamList = {
   // Màn hình người dùng (Buổi 13 & 14)
   Products: { categoryId?: number } | undefined;
   ProductDetail: { product?: Product; productId?: number };
+  SizeSelection: { product: Product };
   Cart: undefined;
   Checkout: undefined;
   OrderHistory: undefined;

@@ -175,12 +175,9 @@ const ProductsScreen: React.FC = () => {
       showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
       return;
     }
-    await addToCart(product, 1);
-    setHeaderKey((prev) => prev + 1);
-    showAlert(
-      'Added to Cart',
-      `"${product.name}" has been added to your TuTu Store cart.`
-    );
+    // Open size selection modal instead of adding directly
+    navigation.openModal();
+    navigation.navigate('SizeSelection', { product });
   };
 
   const renderHeader = () => (
@@ -335,7 +332,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   listContent: {
-    paddingBottom: 24,
+    flexGrow: 1,
+    paddingBottom: 0,
   },
   searchBar: {
     flexDirection: 'row',

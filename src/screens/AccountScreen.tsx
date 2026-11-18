@@ -83,7 +83,10 @@ const AccountScreen: React.FC = () => {
       : 'Customer';
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       <Header
         key={headerKey}
         subtitle="Your account & quick actions"
@@ -269,7 +272,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 14,
-    paddingBottom: 32,
+    paddingBottom: 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   profileCard: {
     backgroundColor: '#FFFFFF',

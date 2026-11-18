@@ -31,11 +31,8 @@ import {
   User,
   getProductImageSource,
 } from '../data/database';
+import SizeSelectionModal from '../components/SizeSelectionModal';
 import { formatPrice } from '../utils/formatPrice';
-import Header from '../components/Header';
-import AppFooter from '../components/AppFooter';
-import CategorySelector from '../components/CategorySelector';
-import ProductCard from '../components/ProductCard';
 import { showAlert } from '../utils/alertHelper';
 
 type PricePreset = 'all' | 'under200' | '200to400' | 'above400' | 'custom';
@@ -216,12 +213,9 @@ const HomeScreen: React.FC = () => {
       showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
       return;
     }
-    await addToCart(product, 1);
-    setHeaderRefreshKey((prev) => prev + 1);
-    showAlert(
-      'Added to Cart',
-      `"${product.name}" has been added to your TuTu Store cart.`
-    );
+    // Open size selection modal instead of adding directly
+    navigation.openModal();
+    navigation.navigate('SizeSelection', { product });
   };
 
   const openProduct = (productId: number) => {
@@ -520,7 +514,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   listContent: {
-    paddingBottom: 24,
+    flexGrow: 1,
+    paddingBottom: 0,
   },
   searchSection: {
     paddingHorizontal: 12,

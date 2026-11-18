@@ -23,6 +23,20 @@ export const notifyAuthChanged = async (): Promise<void> => {
   authListeners.forEach((listener) => listener(user));
 };
 
+type CartListener = () => void;
+const cartListeners: Set<CartListener> = new Set();
+
+export const subscribeCartChanged = (listener: CartListener): (() => void) => {
+  cartListeners.add(listener);
+  return () => {
+    cartListeners.delete(listener);
+  };
+};
+
+export const notifyCartChanged = (): void => {
+  cartListeners.forEach((listener) => listener());
+};
+
 export type Category = {
   id: number;
   name: string;
@@ -41,6 +55,63 @@ export type Product = {
   soldCount?: number;
   stock?: number;
   isDeleted?: number;
+  sizes?: string[];
+};
+
+// ==================== PRODUCT SIZE PRESETS ====================
+// Sizes are tuned to each product type so every item has a sensible choice.
+export const SIZE_PRESETS = {
+  shirt: ['S', 'M', 'L', 'XL', 'XXL'],
+  polo: ['S', 'M', 'L', 'XL', 'XXL'],
+  tshirt: ['S', 'M', 'L', 'XL', 'XXL'],
+  oversize: ['M', 'L', 'XL', 'XXL'],
+  tanktop: ['S', 'M', 'L', 'XL'],
+  jacket: ['S', 'M', 'L', 'XL', 'XXL'],
+  denim: ['28', '30', '32', '34', '36'],
+  trousers: ['29', '30', '31', '32', '33', '34'],
+  shorts: ['S', 'M', 'L', 'XL', 'XXL'],
+  joggers: ['S', 'M', 'L', 'XL', 'XXL'],
+  sneakers: ['39', '40', '41', '42', '43', '44'],
+  runningShoes: ['38', '39', '40', '41', '42', '43', '44', '45'],
+  slipOn: ['38', '39', '40', '41', '42', '43'],
+  sandals: ['38', '39', '40', '41', '42', '43', '44'],
+  default: ['S', 'M', 'L', 'XL'],
+} as const;
+
+// Analyse the product name/category and return the matching size list.
+export const getDefaultSizes = (name: string, categoryId: number): string[] => {
+  const n = name.toLowerCase();
+
+  if (categoryId === 1) {
+    if (n.includes('polo')) return [...SIZE_PRESETS.polo];
+    return [...SIZE_PRESETS.shirt];
+  }
+  if (categoryId === 2) {
+    if (n.includes('oversize')) return [...SIZE_PRESETS.oversize];
+    if (n.includes('tank')) return [...SIZE_PRESETS.tanktop];
+    return [...SIZE_PRESETS.tshirt];
+  }
+  if (categoryId === 3) {
+    if (n.includes('oversize')) return [...SIZE_PRESETS.oversize];
+    return [...SIZE_PRESETS.jacket];
+  }
+  if (categoryId === 4) return [...SIZE_PRESETS.denim];
+  if (categoryId === 5) return [...SIZE_PRESETS.trousers];
+  if (categoryId === 6) {
+    if (n.includes('jogger')) return [...SIZE_PRESETS.joggers];
+    return [...SIZE_PRESETS.shorts];
+  }
+  if (categoryId === 7) {
+    if (n.includes('running') || n.includes('ultraboost')) {
+      return [...SIZE_PRESETS.runningShoes];
+    }
+    return [...SIZE_PRESETS.sneakers];
+  }
+  if (categoryId === 8) {
+    if (n.includes('slip')) return [...SIZE_PRESETS.slipOn];
+    return [...SIZE_PRESETS.sandals];
+  }
+  return [...SIZE_PRESETS.default];
 };
 
 export type UserRole = 'superadmin' | 'admin' | 'user';
@@ -63,6 +134,7 @@ export type CartItem = {
   price: number;
   img: string;
   quantity: number;
+  size?: string;
 };
 
 export type OrderItem = {
@@ -71,6 +143,7 @@ export type OrderItem = {
   price: number;
   img: string;
   quantity: number;
+  size?: string;
 };
 
 export type Order = {
@@ -592,9 +665,9 @@ const initialOrders: Order[] = [
   {
     id: 1001,
     userId: 3,
-    customerName: 'Ngo Minh Tu',
+    customerName: 'Ngô Minh Tú',
     phone: '0988666888',
-    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
+    address: '99 Tô Hiến Thành, Đà Nẵng',
     note: 'Please deliver during office hours',
     paymentMethod: 'Cash on Delivery (COD)',
     totalAmount: 670000,
@@ -620,9 +693,9 @@ const initialOrders: Order[] = [
   {
     id: 1002,
     userId: 3,
-    customerName: 'Ngo Minh Tu',
+    customerName: 'Ngô Minh Tú',
     phone: '0988666888',
-    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
+    address: '99 Tô Hiến Thành, Đà Nẵng',
     note: 'Call 15 minutes before delivery',
     paymentMethod: 'Bank Transfer',
     totalAmount: 1100000,
@@ -640,36 +713,43 @@ const initialOrders: Order[] = [
   },
 ];
 
+// ==================== OWNER / STORE CONTACT INFO ====================
+// Every profile, order and footer detail in the app uses Ngô Minh Tú's info.
+export const OWNER_NAME = 'Ngô Minh Tú';
+export const OWNER_ADDRESS = '99 Tô Hiến Thành, Đà Nẵng';
+export const OWNER_PHONE = '0988666888';
+export const OWNER_EMAIL = 'ngominhtu@gmail.com';
+
 // Seeded accounts: 1 super admin, 1 admin, 1 normal user
 const initialUsers: User[] = [
   {
     id: 1,
     username: 'admin',
     password: '123',
-    fullName: 'TuTu Super Admin',
-    email: 'admin.tutu@gmail.com',
-    phone: '0988111222',
-    address: '123 Nguyen Van Linh, Hai Chau, Da Nang',
+    fullName: OWNER_NAME,
+    email: 'ngominhtu.superadmin@gmail.com',
+    phone: OWNER_PHONE,
+    address: OWNER_ADDRESS,
     role: 'superadmin',
   },
   {
     id: 2,
     username: 'minhtu_admin',
     password: '123',
-    fullName: 'TuTu Admin',
-    email: 'minhtu.admin@gmail.com',
-    phone: '0988222333',
-    address: '45 Le Duan, Hai Chau, Da Nang',
+    fullName: OWNER_NAME,
+    email: 'ngominhtu.admin@gmail.com',
+    phone: OWNER_PHONE,
+    address: OWNER_ADDRESS,
     role: 'admin',
   },
   {
     id: 3,
     username: 'ngominh_tu',
     password: '123',
-    fullName: 'Ngo Minh Tu',
-    email: 'ngominhtu@gmail.com',
-    phone: '0988666888',
-    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
+    fullName: OWNER_NAME,
+    email: OWNER_EMAIL,
+    phone: OWNER_PHONE,
+    address: OWNER_ADDRESS,
     role: 'user',
   },
 ];
@@ -684,6 +764,16 @@ const ASYNC_KEYS = {
   CART_USER_PREFIX: '@tutu_cart_user_v5_',
   ORDERS: '@tutu_orders_v5',
 };
+
+const LEGACY_ADDRESSES = [
+  '68 Dien Bien Phu, Thanh Khe, Da Nang',
+  '123 Nguyen Van Linh, Hai Chau, Da Nang',
+  '45 Le Duan, Hai Chau, Da Nang',
+  'Hai Chau, Da Nang (Ngo Minh Tu)',
+  'Da Nang - TuTu Store',
+];
+
+const LEGACY_OWNER_NAMES = ['Ngo Minh Tu', 'TuTu Admin', 'TuTu Super Admin'];
 
 // ==================== DATABASE INITIALIZATION ====================
 const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
@@ -708,6 +798,68 @@ const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
   })();
 
   return dbOpenPromise;
+};
+
+const migrateLegacyOwnerDataInStorage = async (): Promise<void> => {
+  try {
+    const usersJson = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
+    if (usersJson) {
+      const users = JSON.parse(usersJson) as User[];
+      let changed = false;
+      const updatedUsers = users.map((u) => {
+        let next = u;
+        if (u.address && LEGACY_ADDRESSES.includes(u.address)) {
+          next = { ...next, address: OWNER_ADDRESS };
+          changed = true;
+        }
+        if (u.fullName && LEGACY_OWNER_NAMES.includes(u.fullName)) {
+          next = { ...next, fullName: OWNER_NAME };
+          changed = true;
+        }
+        return next;
+      });
+      if (changed) {
+        await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(updatedUsers));
+      }
+    }
+
+    const ordersJson = await AsyncStorage.getItem(ASYNC_KEYS.ORDERS);
+    if (ordersJson) {
+      const orders = JSON.parse(ordersJson) as Order[];
+      let changed = false;
+      const updatedOrders = orders.map((o) => {
+        let next = o;
+        if (o.address && LEGACY_ADDRESSES.includes(o.address)) {
+          next = { ...next, address: OWNER_ADDRESS };
+          changed = true;
+        }
+        if (o.customerName && LEGACY_OWNER_NAMES.includes(o.customerName)) {
+          next = { ...next, customerName: OWNER_NAME };
+          changed = true;
+        }
+        return next;
+      });
+      if (changed) {
+        await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(updatedOrders));
+      }
+    }
+
+    // The signed-in user is cached separately, keep it aligned too.
+    const currentJson = await AsyncStorage.getItem(ASYNC_KEYS.CURRENT_USER);
+    if (currentJson) {
+      const current = JSON.parse(currentJson) as User;
+      const next: User = { ...current };
+      if (current.address && LEGACY_ADDRESSES.includes(current.address)) {
+        next.address = OWNER_ADDRESS;
+      }
+      if (current.fullName && LEGACY_OWNER_NAMES.includes(current.fullName)) {
+        next.fullName = OWNER_NAME;
+      }
+      await AsyncStorage.setItem(ASYNC_KEYS.CURRENT_USER, JSON.stringify(next));
+    }
+  } catch (error) {
+    console.warn('[migrateLegacyOwnerDataInStorage] Error:', error);
+  }
 };
 
 const seedAsyncStorageIfNeeded = async (): Promise<void> => {
@@ -772,6 +924,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
             soldCount INTEGER DEFAULT 0,
             stock INTEGER DEFAULT 0,
             isDeleted INTEGER DEFAULT 0,
+            sizes TEXT,
             FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE CASCADE
           );
           CREATE TABLE IF NOT EXISTS users (
@@ -805,6 +958,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
           'ALTER TABLE products ADD COLUMN salePrice REAL;',
           'ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0;',
           'ALTER TABLE products ADD COLUMN isDeleted INTEGER DEFAULT 0;',
+          'ALTER TABLE products ADD COLUMN sizes TEXT;',
           'ALTER TABLE users ADD COLUMN isBlocked INTEGER DEFAULT 0;',
         ];
         for (const sql of alterColumns) {
@@ -822,8 +976,8 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
 
         for (const prod of initialProducts) {
           await database.runAsync(
-            `INSERT OR IGNORE INTO products (id, name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT OR IGNORE INTO products (id, name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted, sizes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               prod.id,
               prod.name,
@@ -836,7 +990,16 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
               prod.soldCount || 0,
               prod.stock ?? 0,
               prod.isDeleted ?? 0,
+              JSON.stringify(getDefaultSizes(prod.name, prod.categoryId)),
             ]
+          );
+        }
+
+        // Give every product its size list (also fills rows created by older builds)
+        for (const prod of initialProducts) {
+          await database.runAsync(
+            `UPDATE products SET sizes = ? WHERE id = ? AND (sizes IS NULL OR sizes = '')`,
+            [JSON.stringify(getDefaultSizes(prod.name, prod.categoryId)), prod.id]
           );
         }
 
@@ -877,9 +1040,35 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
             ]
           );
         }
+        // Keep the owner profile in sync with Ngô Minh Tú's current details
+        for (const legacy of LEGACY_ADDRESSES) {
+          try {
+            await database.runAsync('UPDATE users SET address = ? WHERE address = ?', [
+              OWNER_ADDRESS,
+              legacy,
+            ]);
+            await database.runAsync('UPDATE orders SET address = ? WHERE address = ?', [
+              OWNER_ADDRESS,
+              legacy,
+            ]);
+          } catch (_) {}
+        }
+        for (const legacyName of LEGACY_OWNER_NAMES) {
+          try {
+            await database.runAsync('UPDATE users SET fullName = ? WHERE fullName = ?', [
+              OWNER_NAME,
+              legacyName,
+            ]);
+            await database.runAsync(
+              'UPDATE orders SET customerName = ? WHERE customerName = ?',
+              [OWNER_NAME, legacyName]
+            );
+          } catch (_) {}
+        }
       } else {
         await seedAsyncStorageIfNeeded();
       }
+      await migrateLegacyOwnerDataInStorage();
       isDbInitialized = true;
     } catch (error) {
       // If native SQLite is locked, fall back to AsyncStorage silently
@@ -888,6 +1077,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
       db = null;
       try {
         await seedAsyncStorageIfNeeded();
+        await migrateLegacyOwnerDataInStorage();
         isDbInitialized = true;
       } catch (_) {}
     } finally {
@@ -902,11 +1092,50 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
   }
 };
 
+const normalizeSizes = (
+  input?: string[] | string | null,
+  fallback: string[] = [...SIZE_PRESETS.default]
+): string[] => {
+  let raw: string[] = [];
+  if (Array.isArray(input)) {
+    raw = input;
+  } else if (typeof input === 'string' && input.trim()) {
+    const text = input.trim();
+    if (text.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(text);
+        raw = Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
+        raw = [];
+      }
+    } else {
+      raw = text.split(',');
+    }
+  }
+
+  const cleaned = Array.from(
+    new Set(
+      raw
+        .map((s) => String(s).trim().toUpperCase())
+        .filter((s) => s.length > 0)
+    )
+  );
+
+  return cleaned.length > 0 ? cleaned : fallback;
+};
+
 const normalizeProduct = (row: Product): Product => ({
   ...row,
   salePrice: row.salePrice === null || row.salePrice === undefined ? null : Number(row.salePrice),
   stock: row.stock === null || row.stock === undefined ? 0 : Number(row.stock),
   isDeleted: Number(row.isDeleted ?? 0),
+  sizes: normalizeSizes(
+    (row as Product & { sizes?: string | string[] }).sizes as
+      | string
+      | string[]
+      | undefined,
+    getDefaultSizes(row.name, row.categoryId)
+  ),
 });
 
 // ==================== 1. CATEGORY MANAGEMENT ====================
@@ -1129,6 +1358,7 @@ export const addProduct = async (payload: {
   img: string;
   categoryId: number;
   description?: string;
+  sizes?: string[];
 }): Promise<boolean> => {
   try {
     const database = await getDb();
@@ -1143,12 +1373,28 @@ export const addProduct = async (payload: {
         ? Number(payload.salePrice)
         : null;
     const stock = Math.max(0, Number(payload.stock ?? 0));
+    const sizes = normalizeSizes(
+      payload.sizes,
+      getDefaultSizes(payload.name, payload.categoryId)
+    );
 
     if (database) {
       await database.runAsync(
-        `INSERT INTO products (name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [payload.name.trim(), payload.price, salePrice, cleanImg, payload.categoryId, desc, 4.5, 0, stock, 0]
+        `INSERT INTO products (name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted, sizes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          payload.name.trim(),
+          payload.price,
+          salePrice,
+          cleanImg,
+          payload.categoryId,
+          desc,
+          4.5,
+          0,
+          stock,
+          0,
+          JSON.stringify(sizes),
+        ]
       );
       return true;
     }
@@ -1167,6 +1413,7 @@ export const addProduct = async (payload: {
       soldCount: 0,
       stock,
       isDeleted: 0,
+      sizes,
     };
     await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify([newProd, ...prods]));
     return true;
@@ -1186,6 +1433,7 @@ export const updateProduct = async (
     img: string;
     categoryId: number;
     description?: string;
+    sizes?: string[];
   }
 ): Promise<boolean> => {
   try {
@@ -1201,12 +1449,26 @@ export const updateProduct = async (
         ? Number(payload.salePrice)
         : null;
     const stock = Math.max(0, Number(payload.stock ?? 0));
+    const sizes = normalizeSizes(
+      payload.sizes,
+      getDefaultSizes(payload.name, payload.categoryId)
+    );
 
     if (database) {
       await database.runAsync(
-        `UPDATE products SET name = ?, price = ?, salePrice = ?, img = ?, categoryId = ?, description = ?, stock = ?
+        `UPDATE products SET name = ?, price = ?, salePrice = ?, img = ?, categoryId = ?, description = ?, stock = ?, sizes = ?
          WHERE id = ?`,
-        [payload.name.trim(), payload.price, salePrice, cleanImg, payload.categoryId, desc, stock, id]
+        [
+          payload.name.trim(),
+          payload.price,
+          salePrice,
+          cleanImg,
+          payload.categoryId,
+          desc,
+          stock,
+          JSON.stringify(sizes),
+          id,
+        ]
       );
       return true;
     }
@@ -1223,6 +1485,7 @@ export const updateProduct = async (
           categoryId: payload.categoryId,
           description: desc,
           stock,
+          sizes,
         }
         : p
     );
@@ -1678,30 +1941,85 @@ export const syncGuestCartToUserCart = async (userId: number): Promise<void> => 
 
     await AsyncStorage.setItem(userCartKey, JSON.stringify(userItems));
     await AsyncStorage.removeItem(ASYNC_KEYS.CART_GUEST);
+    notifyCartChanged();
   } catch (error) {
     console.error('[syncGuestCartToUserCart] Cart sync failed:', error);
   }
 };
 
+export const getCartItemKey = (item: { productId: number; size?: string }): string =>
+  `${item.productId}::${(item.size || '').toUpperCase()}`;
+
 export const fetchCartItems = async (): Promise<CartItem[]> => {
   try {
     const key = await getActiveCartKey();
     const json = await AsyncStorage.getItem(key);
-    return json ? JSON.parse(json) : [];
+    const items: CartItem[] = json ? JSON.parse(json) : [];
+    if (items.length === 0) return [];
+
+    // Keep cart rows in sync with the catalog so the image, name and price
+    // stored in the order are always identical to the product information.
+    const products = await fetchAllProducts();
+    return items.map((item) => {
+      const prod = products.find((p) => p.id === item.productId);
+      if (!prod) return item;
+      const hasSale =
+        prod.salePrice !== null &&
+        prod.salePrice !== undefined &&
+        Number(prod.salePrice) > 0 &&
+        Number(prod.salePrice) < Number(prod.price);
+      return {
+        ...item,
+        productName: prod.name,
+        img: prod.img,
+        price: hasSale ? Number(prod.salePrice) : prod.price,
+        size: item.size ? item.size.toUpperCase() : item.size,
+      };
+    });
   } catch (error) {
     console.error('[fetchCartItems] Error:', error);
     return [];
   }
 };
 
+// Remove only the rows that were actually ordered, keeping the rest in the cart
+export const removePurchasedItems = async (
+  purchased: { productId: number; size?: string }[]
+): Promise<void> => {
+  try {
+    const key = await getActiveCartKey();
+    const items = await fetchCartItems();
+    const purchasedKeys = new Set(purchased.map((item) => getCartItemKey(item)));
+    const remaining = items.filter(
+      (item) => !purchasedKeys.has(getCartItemKey(item))
+    );
+    await AsyncStorage.setItem(key, JSON.stringify(remaining));
+    notifyCartChanged();
+  } catch (error) {
+    console.error('[removePurchasedItems] Error:', error);
+  }
+};
+
 export const addToCart = async (
   product: Product,
-  quantity: number = 1
+  quantity: number = 1,
+  size?: string
 ): Promise<CartItem[]> => {
   try {
     const key = await getActiveCartKey();
     const items = await fetchCartItems();
-    const existingIndex = items.findIndex((item) => item.productId === product.id);
+    const availableSizes =
+      product.sizes && product.sizes.length > 0
+        ? product.sizes
+        : getDefaultSizes(product.name, product.categoryId);
+    const requested = size ? size.trim().toUpperCase() : '';
+    const chosenSize =
+      requested && availableSizes.includes(requested)
+        ? requested
+        : availableSizes[0];
+    const existingIndex = items.findIndex(
+      (item) => item.productId === product.id && (item.size || '') === chosenSize
+    );
     const unitPrice =
       product.salePrice !== null &&
       product.salePrice !== undefined &&
@@ -1713,6 +2031,8 @@ export const addToCart = async (
     if (existingIndex >= 0) {
       items[existingIndex].quantity += quantity;
       items[existingIndex].price = unitPrice;
+      items[existingIndex].productName = product.name;
+      items[existingIndex].img = product.img;
     } else {
       items.push({
         productId: product.id,
@@ -1720,10 +2040,12 @@ export const addToCart = async (
         price: unitPrice,
         img: product.img,
         quantity,
+        size: chosenSize || undefined,
       });
     }
 
     await AsyncStorage.setItem(key, JSON.stringify(items));
+    notifyCartChanged();
     return items;
   } catch (error) {
     console.error('[addToCart] Error:', error);
@@ -1733,20 +2055,24 @@ export const addToCart = async (
 
 export const updateCartItemQuantity = async (
   productId: number,
-  quantity: number
+  quantity: number,
+  size?: string
 ): Promise<CartItem[]> => {
   try {
     const key = await getActiveCartKey();
     const items = await fetchCartItems();
+    const matches = (item: CartItem) =>
+      item.productId === productId && (item.size || '') === (size || '');
     let updated: CartItem[];
     if (quantity <= 0) {
-      updated = items.filter((item) => item.productId !== productId);
+      updated = items.filter((item) => !matches(item));
     } else {
       updated = items.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
+        matches(item) ? { ...item, quantity } : item
       );
     }
     await AsyncStorage.setItem(key, JSON.stringify(updated));
+    notifyCartChanged();
     return updated;
   } catch (error) {
     console.error('[updateCartItemQuantity] Error:', error);
@@ -1754,12 +2080,18 @@ export const updateCartItemQuantity = async (
   }
 };
 
-export const removeFromCart = async (productId: number): Promise<CartItem[]> => {
+export const removeFromCart = async (
+  productId: number,
+  size?: string
+): Promise<CartItem[]> => {
   try {
     const key = await getActiveCartKey();
     const items = await fetchCartItems();
-    const updated = items.filter((item) => item.productId !== productId);
+    const updated = items.filter(
+      (item) => !(item.productId === productId && (item.size || '') === (size || ''))
+    );
     await AsyncStorage.setItem(key, JSON.stringify(updated));
+    notifyCartChanged();
     return updated;
   } catch (error) {
     console.error('[removeFromCart] Error:', error);
@@ -1771,6 +2103,7 @@ export const clearCart = async (): Promise<void> => {
   try {
     const key = await getActiveCartKey();
     await AsyncStorage.setItem(key, JSON.stringify([]));
+    notifyCartChanged();
   } catch (error) {
     console.error('[clearCart] Error:', error);
   }
@@ -1842,30 +2175,55 @@ export const createOrder = async (payload: {
     }
 
     const allProducts = await fetchAllProducts();
-    for (const item of payload.items) {
+    const requestedByProduct = new Map<number, number>();
+    const orderItems: OrderItem[] = payload.items.map((item) => {
+      const prod = allProducts.find((p) => p.id === item.productId);
+      const hasSale =
+        prod &&
+        prod.salePrice !== null &&
+        prod.salePrice !== undefined &&
+        Number(prod.salePrice) > 0 &&
+        Number(prod.salePrice) < Number(prod.price);
+      return {
+        ...item,
+        productName: prod?.name ?? item.productName,
+        img: prod?.img ?? item.img,
+        price: prod ? (hasSale ? Number(prod.salePrice) : prod.price) : item.price,
+      };
+    });
+
+    for (const item of orderItems) {
       const prod = allProducts.find((p) => p.id === item.productId);
       if (!prod) {
         return { success: false, message: `Product not found: ${item.productName}` };
       }
-      if (Number(prod.stock ?? 0) < item.quantity) {
-        return { success: false, message: `Insufficient stock for ${prod.name}` };
+      requestedByProduct.set(
+        item.productId,
+        (requestedByProduct.get(item.productId) ?? 0) + item.quantity
+      );
+    }
+
+    for (const [productId, quantity] of requestedByProduct) {
+      const prod = allProducts.find((p) => p.id === productId);
+      if (Number(prod?.stock ?? 0) < quantity) {
+        return { success: false, message: `Insufficient stock for ${prod?.name}` };
       }
     }
 
-    for (const item of payload.items) {
-      const deduct = await deductStock(item.productId, item.quantity);
+    for (const [productId, quantity] of requestedByProduct) {
+      const deduct = await deductStock(productId, quantity);
       if (!deduct.success) {
         return { success: false, message: deduct.message };
       }
     }
 
-    const totalAmount = payload.items.reduce(
+    const totalAmount = orderItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
     const createdAt = new Date().toLocaleString('en-GB');
     const status = 'Pending';
-    const itemsJson = JSON.stringify(payload.items);
+    const itemsJson = JSON.stringify(orderItems);
 
     const database = await getDb();
     if (database) {
@@ -1896,9 +2254,9 @@ export const createOrder = async (payload: {
         totalAmount,
         status,
         createdAt,
-        items: payload.items,
+        items: orderItems,
       };
-      await clearCart();
+      await removePurchasedItems(orderItems);
       return { success: true, order: newOrder };
     }
 
@@ -1916,13 +2274,13 @@ export const createOrder = async (payload: {
       totalAmount,
       status,
       createdAt,
-      items: payload.items,
+      items: orderItems,
     };
     await AsyncStorage.setItem(
       ASYNC_KEYS.ORDERS,
       JSON.stringify([newOrder, ...existing])
     );
-    await clearCart();
+    await removePurchasedItems(orderItems);
     return { success: true, order: newOrder };
   } catch (error) {
     console.error('[createOrder] Error:', error);

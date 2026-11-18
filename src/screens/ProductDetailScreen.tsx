@@ -17,6 +17,7 @@ import {
   getProductById,
   addToCart,
   getCurrentUser,
+  getDefaultSizes,
   isAdminRole,
   Category,
   Product,
@@ -43,6 +44,7 @@ const ProductDetailScreen: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [categoryName, setCategoryName] = useState<string>('Loading...');
   const [quantity, setQuantity] = useState<number>(1);
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [imgError, setImgError] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [headerKey, setHeaderKey] = useState<number>(0);
@@ -88,10 +90,18 @@ const ProductDetailScreen: React.FC = () => {
     Number(product.salePrice) > 0 &&
     Number(product.salePrice) < Number(product.price);
   const effectivePrice = hasSale ? Number(product.salePrice) : product.price;
+  const availableSizes =
+    product.sizes && product.sizes.length > 0
+      ? product.sizes
+      : getDefaultSizes(product.name, product.categoryId);
 
   const validateQuantity = (): boolean => {
     if (isOutOfStock) {
       showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
+      return false;
+    }
+    if (!selectedSize) {
+      showAlert('Select a Size', 'Please choose a size before adding this product.');
       return false;
     }
     if (quantity > stockQty) {
@@ -106,17 +116,17 @@ const ProductDetailScreen: React.FC = () => {
 
   const handleAddCart = async () => {
     if (!validateQuantity()) return;
-    await addToCart(product, quantity);
+    await addToCart(product, quantity, selectedSize);
     setHeaderKey((prev) => prev + 1);
     showAlert(
       'Added to Cart',
-      `${quantity} x "${product.name}" was added to your TuTu Store cart.`
+      `${quantity} x "${product.name}" (Size ${selectedSize}) was added to your TuTu Store cart.`
     );
   };
 
   const handleBuyNow = async () => {
     if (!validateQuantity()) return;
-    await addToCart(product, quantity);
+    await addToCart(product, quantity, selectedSize);
     navigation.navigate('Cart');
   };
 
@@ -267,6 +277,34 @@ const ProductDetailScreen: React.FC = () => {
           </View>
         ) : (
           <>
+            <View style={styles.sizeHeaderRow}>
+              <Text style={styles.sectionLabel}>SELECT SIZE (*):</Text>
+              <Text style={styles.sizeHint}>
+                {availableSizes.length} sizes available
+              </Text>
+            </View>
+            <View style={styles.sizeRow}>
+              {availableSizes.map((size) => {
+                const active = selectedSize === size;
+                return (
+                  <TouchableOpacity
+                    key={size}
+                    style={[styles.sizeChip, active && styles.sizeChipActive]}
+                    onPress={() => setSelectedSize(size)}
+                  >
+                    <Text
+                      style={[
+                        styles.sizeChipText,
+                        active && styles.sizeChipTextActive,
+                      ]}
+                    >
+                      {size}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <View style={styles.quantityRow}>
               <Text style={styles.sectionLabel}>QUANTITY:</Text>
               <View style={styles.qtyControl}>
@@ -491,6 +529,35 @@ const styles = StyleSheet.create({
   deletedNoticeText: { flex: 1, fontSize: 11, color: '#B91C1C', fontWeight: '600' },
   divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 14 },
   sectionLabel: { fontSize: 13, fontWeight: 'bold', color: '#334155' },
+  sizeHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sizeHint: { fontSize: 11, color: '#64748B', fontWeight: '600' },
+  sizeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  sizeChip: {
+    minWidth: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  sizeChipActive: {
+    borderColor: '#1E3A8A',
+    backgroundColor: '#1E3A8A',
+  },
+  sizeChipText: { fontSize: 13, fontWeight: 'bold', color: '#334155' },
+  sizeChipTextActive: { color: '#FFFFFF' },
   descriptionText: {
     fontSize: 14,
     color: '#475569',

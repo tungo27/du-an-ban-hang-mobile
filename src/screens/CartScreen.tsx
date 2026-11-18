@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -19,12 +19,13 @@ import {
   getProductImageSource,
   getCurrentUser,
   getRecommendedProducts,
-  addToCart,
+  getCartItemKey,
   isAdminRole,
   CartItem,
   Product,
   User,
 } from '../data/database';
+import { setCheckoutSelection } from '../data/checkoutSelection';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
 import AppFooter from '../components/AppFooter';
@@ -37,6 +38,9 @@ const CartScreen: React.FC = () => {
   const [recommended, setRecommended] = useState<Product[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [headerKey, setHeaderKey] = useState<number>(0);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const initializedRef = useRef<boolean>(false);
+  const knownKeysRef = useRef<string[]>([]);
 
   const loadCart = useCallback(async () => {
     const [data, user] = await Promise.all([
@@ -45,6 +49,21 @@ const CartScreen: React.FC = () => {
     ]);
     setItems(data);
     setCurrentUser(user);
+    setSelectedKeys((prev) => {
+      const validKeys = data.map(getCartItemKey);
+      const newKeys = validKeys.filter(
+        (key) => !knownKeysRef.current.includes(key)
+      );
+      knownKeysRef.current = validKeys;
+
+      if (!initializedRef.current) {
+        initializedRef.current = true;
+        return validKeys;
+      }
+      const kept = prev.filter((key) => validKeys.includes(key));
+      const autoSelected = newKeys.filter((key) => !kept.includes(key));
+      return [...kept, ...autoSelected];
+    });
     const recs = await getRecommendedProducts(
       data.map((item) => item.productId),
       8
@@ -92,22 +111,24 @@ const CartScreen: React.FC = () => {
         'Remove Item',
         `Remove "${item.productName}" from your cart?`,
         async () => {
-          await removeFromCart(item.productId);
+          await removeFromCart(item.productId, item.size);
           loadCart();
         }
       );
       return;
     }
-    await updateCartItemQuantity(item.productId, newQty);
+    await updateCartItemQuantity(item.productId, newQty, item.size);
     loadCart();
   };
 
   const handleRemoveItem = (item: CartItem) => {
     showConfirm(
       'Remove from Cart',
-      `Are you sure you want to remove "${item.productName}"?`,
+      `Are you sure you want to remove "${item.productName}"${
+        item.size ? ` (Size ${item.size})` : ''
+      }?`,
       async () => {
-        await removeFromCart(item.productId);
+        await removeFromCart(item.productId, item.size);
         loadCart();
       }
     );
@@ -119,10 +140,31 @@ const CartScreen: React.FC = () => {
       'Do you want to remove every item from your cart?',
       async () => {
         await clearCart();
+        initializedRef.current = true;
+        knownKeysRef.current = [];
+        setSelectedKeys([]);
         loadCart();
       }
     );
   };
+
+  const toggleSelect = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  const allSelected =
+    items.length > 0 &&
+    items.every((item) => selectedKeys.includes(getCartItemKey(item)));
+
+  const handleToggleAll = () => {
+    setSelectedKeys(allSelected ? [] : items.map(getCartItemKey));
+  };
+
+  const selectedItems = items.filter((item) =>
+    selectedKeys.includes(getCartItemKey(item))
+  );
 
   const handleProceedCheckout = () => {
     if (!currentUser) {
@@ -144,24 +186,32 @@ const CartScreen: React.FC = () => {
       return;
     }
 
+    if (selectedItems.length === 0) {
+      showAlert(
+        'Select Products',
+        'Please tick at least one product to create an order for this checkout.'
+      );
+      return;
+    }
+
+    setCheckoutSelection(selectedItems);
     navigation.navigate('Checkout');
   };
 
-  const handleAddRecommended = async (product: Product) => {
+  const handleAddRecommended = (product: Product) => {
     if (Number(product.stock ?? 0) <= 0) {
       showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
       return;
     }
-    await addToCart(product, 1);
-    await loadCart();
-    showAlert(
-      'Added to Cart',
-      `"${product.name}" has been added to your cart.`
-    );
+    navigation.navigate('ProductDetail', { productId: product.id });
   };
 
-  const totalAmount = items.reduce(
+  const totalAmount = selectedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const selectedQuantity = selectedItems.reduce(
+    (sum, item) => sum + item.quantity,
     0
   );
 
@@ -196,12 +246,14 @@ const CartScreen: React.FC = () => {
     <View style={styles.container}>
       <FlatList
         data={items}
-        keyExtractor={(item) => item.productId.toString()}
+        keyExtractor={(item) =>
+          `${item.productId}-${item.size || 'NOSIZE'}`
+        }
         ListHeaderComponent={
           <View>
             <Header
               key={headerKey}
-              subtitle="Review your cart before checkout"
+              subtitle="Tick the products you want to order"
               onUserChanged={(u) => setCurrentUser(u)}
             />
             {!currentUser && items.length > 0 && (
@@ -227,53 +279,95 @@ const CartScreen: React.FC = () => {
                 </TouchableOpacity>
               )}
             </View>
+            {items.length > 0 && (
+              <View style={styles.selectionBar}>
+                <TouchableOpacity
+                  style={styles.selectAllBtn}
+                  onPress={handleToggleAll}
+                >
+                  <Ionicons
+                    name={allSelected ? 'checkbox' : 'square-outline'}
+                    size={20}
+                    color={allSelected ? '#16A34A' : '#64748B'}
+                  />
+                  <Text style={styles.selectAllText}>
+                    {allSelected ? 'Deselect all' : 'Select all'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={styles.selectionCount}>
+                  {selectedItems.length}/{items.length} selected for this order
+                </Text>
+              </View>
+            )}
           </View>
         }
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.cartCard}>
-            <Image
-              source={getProductImageSource(item.img)}
-              style={styles.itemImage}
-              resizeMode="cover"
-            />
-            <View style={styles.itemInfo}>
-              <Text style={styles.itemName} numberOfLines={2}>
-                {item.productName}
-              </Text>
-              <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
-              <Text style={styles.itemSubtotal}>
-                Subtotal: {formatPrice(item.price * item.quantity)}
-              </Text>
+        renderItem={({ item }) => {
+          const itemKey = getCartItemKey(item);
+          const checked = selectedKeys.includes(itemKey);
+          return (
+            <View style={[styles.cartCard, checked && styles.cartCardChecked]}>
+              <TouchableOpacity
+                style={styles.checkboxBtn}
+                onPress={() => toggleSelect(itemKey)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked }}
+              >
+                <Ionicons
+                  name={checked ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={checked ? '#16A34A' : '#94A3B8'}
+                />
+              </TouchableOpacity>
+              <Image
+                source={getProductImageSource(item.img)}
+                style={styles.itemImage}
+                resizeMode="cover"
+              />
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName} numberOfLines={2}>
+                  {item.productName}
+                </Text>
+                {!!item.size && (
+                  <View style={styles.sizeBadge}>
+                    <Ionicons name="resize-outline" size={10} color="#1E3A8A" />
+                    <Text style={styles.sizeBadgeText}>Size: {item.size}</Text>
+                  </View>
+                )}
+                <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
+                <Text style={styles.itemSubtotal}>
+                  Subtotal: {formatPrice(item.price * item.quantity)}
+                </Text>
 
-              <View style={styles.controlsRow}>
-                <View style={styles.qtyBox}>
+                <View style={styles.controlsRow}>
+                  <View style={styles.qtyBox}>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => handleUpdateQty(item, -1)}
+                    >
+                      <Ionicons name="remove" size={15} color="#1E293B" />
+                    </TouchableOpacity>
+                    <Text style={styles.qtyText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => handleUpdateQty(item, 1)}
+                    >
+                      <Ionicons name="add" size={15} color="#1E293B" />
+                    </TouchableOpacity>
+                  </View>
+
                   <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => handleUpdateQty(item, -1)}
+                    style={styles.deleteBtn}
+                    onPress={() => handleRemoveItem(item)}
                   >
-                    <Ionicons name="remove" size={15} color="#1E293B" />
-                  </TouchableOpacity>
-                  <Text style={styles.qtyText}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => handleUpdateQty(item, 1)}
-                  >
-                    <Ionicons name="add" size={15} color="#1E293B" />
+                    <Ionicons name="trash-outline" size={12} color="#DC2626" />
+                    <Text style={styles.deleteBtnText}>Remove</Text>
                   </TouchableOpacity>
                 </View>
-
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  onPress={() => handleRemoveItem(item)}
-                >
-                  <Ionicons name="trash-outline" size={12} color="#DC2626" />
-                  <Text style={styles.deleteBtnText}>Remove</Text>
-                </TouchableOpacity>
               </View>
             </View>
-          </View>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
             <Ionicons name="cart-outline" size={40} color="#94A3B8" />
@@ -295,7 +389,7 @@ const CartScreen: React.FC = () => {
         ListFooterComponent={
           <>
             {renderRecommendations()}
-            <AppFooter />
+            <AppFooter extraBottomPadding={items.length > 0 ? 96 : 0} />
           </>
         }
       />
@@ -303,16 +397,22 @@ const CartScreen: React.FC = () => {
       {items.length > 0 && (
         <View style={styles.footerBar}>
           <View>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>
+              Selected ({selectedQuantity}{' '}
+              {selectedQuantity === 1 ? 'item' : 'items'})
+            </Text>
             <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
           </View>
           <TouchableOpacity
-            style={styles.checkoutBtn}
+            style={[
+              styles.checkoutBtn,
+              selectedItems.length === 0 && styles.checkoutBtnDisabled,
+            ]}
             onPress={handleProceedCheckout}
           >
             <Ionicons name="card-outline" size={14} color="#FFFFFF" />
             <Text style={styles.checkoutBtnText}>
-              {currentUser ? 'Checkout' : 'Sign In to Checkout'}
+              {currentUser ? `Checkout (${selectedItems.length})` : 'Sign In to Checkout'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -327,7 +427,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   listContent: {
-    paddingBottom: 110,
+    flexGrow: 1,
+    paddingBottom: 0,
   },
   guestSyncBanner: {
     flexDirection: 'row',
@@ -353,7 +454,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   title: {
     fontSize: 15,
@@ -376,8 +478,37 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
+  selectionBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 12,
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  selectAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  selectAllText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#334155',
+  },
+  selectionCount: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
   cartCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
     marginHorizontal: 12,
     marginBottom: 10,
@@ -385,6 +516,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  cartCardChecked: {
+    borderColor: '#86EFAC',
+    backgroundColor: '#F0FDF4',
+  },
+  checkboxBtn: {
+    paddingRight: 8,
+    paddingVertical: 4,
   },
   itemImage: {
     width: 85,
@@ -394,13 +533,31 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 10,
   },
   itemName: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 4,
+  },
+  sizeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+    marginBottom: 4,
+  },
+  sizeBadgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1E3A8A',
   },
   itemPrice: {
     fontSize: 13,
@@ -514,6 +671,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 8,
+  },
+  checkoutBtnDisabled: {
+    backgroundColor: '#94A3B8',
   },
   checkoutBtnText: {
     color: '#FFFFFF',

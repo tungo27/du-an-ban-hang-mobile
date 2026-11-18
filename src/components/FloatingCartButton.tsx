@@ -7,6 +7,7 @@ import {
   getCurrentUser,
   isAdminRole,
   subscribeAuthChanged,
+  subscribeCartChanged,
 } from '../data/database';
 import { navigationRef } from '../navigation/navigationRef';
 
@@ -42,10 +43,16 @@ const FloatingCartButton: React.FC<FloatingCartButtonProps> = ({ routeName }) =>
   }, [refresh, routeName]);
 
   useEffect(() => {
-    const unsubscribe = subscribeAuthChanged(() => {
+    const unsubscribeAuth = subscribeAuthChanged(() => {
       refresh();
     });
-    return unsubscribe;
+    const unsubscribeCart = subscribeCartChanged(() => {
+      refresh();
+    });
+    return () => {
+      unsubscribeAuth();
+      unsubscribeCart();
+    };
   }, [refresh]);
 
   const hidden = routeName === 'AccountTab' || isAdmin;

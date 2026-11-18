@@ -121,7 +121,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.label}>Full name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Ngo Minh Tu"
+            placeholder="e.g. Ngô Minh Tú"
             placeholderTextColor="#94A3B8"
             value={fullName}
             onChangeText={setFullName}
@@ -141,7 +141,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.label}>Phone number</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
+            placeholder="e.g. 0988666888 (Ngô Minh Tú)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={phone}
@@ -151,7 +151,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.label}>Default address</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g. Hai Chau, Da Nang - Ngo Minh Tu"
+            placeholder="e.g. 99 Tô Hiến Thành, Đà Nẵng"
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
