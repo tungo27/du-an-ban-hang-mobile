@@ -21,10 +21,10 @@ import {
   initDatabase,
   loginUser,
   getCurrentUser,
+  notifyAuthChanged,
   User,
 } from '../data/database';
 import Header from '../components/Header';
-import { notifyAuthChanged } from '../navigation/BottomTabNavigator';
 import { showAlert } from '../utils/alertHelper';
 
 type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;

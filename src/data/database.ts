@@ -3,7 +3,25 @@ import * as SQLite from 'expo-sqlite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 let db: SQLite.SQLiteDatabase | null = null;
+let dbOpenPromise: Promise<SQLite.SQLiteDatabase | null> | null = null;
+let dbInitPromise: Promise<void> | null = null;
+let isDbInitialized = false;
 let useAsyncStorageFallback = Platform.OS === 'web';
+
+type AuthListener = (user: User | null) => void;
+const authListeners: Set<AuthListener> = new Set();
+
+export const subscribeAuthChanged = (listener: AuthListener): (() => void) => {
+  authListeners.add(listener);
+  return () => {
+    authListeners.delete(listener);
+  };
+};
+
+export const notifyAuthChanged = async (): Promise<void> => {
+  const user = await getCurrentUser();
+  authListeners.forEach((listener) => listener(user));
+};
 
 export type Category = {
   id: number;
@@ -581,24 +599,49 @@ const ASYNC_KEYS = {
 const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
   if (useAsyncStorageFallback) return null;
   if (db) return db;
-  try {
-    db = await SQLite.openDatabaseAsync('minhTuStore_b14_v4.db');
-    await db.execAsync('PRAGMA foreign_keys = ON;');
-    return db;
-  } catch (err) {
-    console.warn('[getDb] Không mở được SQLite native, chuyển sang AsyncStorage:', err);
-    useAsyncStorageFallback = true;
-    return null;
-  }
+  if (dbOpenPromise) return dbOpenPromise;
+
+  dbOpenPromise = (async () => {
+    try {
+      const openedDb = await SQLite.openDatabaseAsync('minhTuStore_b14_v4.db');
+      await openedDb.execAsync('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;');
+      db = openedDb;
+      return db;
+    } catch (err) {
+      console.warn('[getDb] Không mở được SQLite native, chuyển sang AsyncStorage:', err);
+      useAsyncStorageFallback = true;
+      db = null;
+      return null;
+    } finally {
+      dbOpenPromise = null;
+    }
+  })();
+
+  return dbOpenPromise;
 };
 
 export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
-  try {
-    const database = await getDb();
+  if (isDbInitialized) {
+    onSuccess?.();
+    return;
+  }
 
-    if (database) {
-      await database.withExclusiveTransactionAsync(async (transaction) => {
-        await transaction.execAsync(`
+  if (dbInitPromise) {
+    try {
+      await dbInitPromise;
+    } finally {
+      onSuccess?.();
+    }
+    return;
+  }
+
+  dbInitPromise = (async () => {
+    try {
+      const database = await getDb();
+
+      if (database) {
+        await database.execAsync(`
+          PRAGMA busy_timeout = 5000;
           PRAGMA foreign_keys = ON;
           CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -643,18 +686,18 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
         `);
 
         try {
-          await transaction.execAsync('ALTER TABLE users ADD COLUMN isBlocked INTEGER DEFAULT 0;');
+          await database.execAsync('ALTER TABLE users ADD COLUMN isBlocked INTEGER DEFAULT 0;');
         } catch (_) {}
 
         for (const cat of initialCategories) {
-          await transaction.runAsync(
+          await database.runAsync(
             'INSERT OR IGNORE INTO categories (id, name, img) VALUES (?, ?, ?)',
             [cat.id, cat.name, cat.img || '']
           );
         }
 
         for (const prod of initialProducts) {
-          await transaction.runAsync(
+          await database.runAsync(
             'INSERT OR IGNORE INTO products (id, name, price, img, categoryId, description, rating, soldCount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
               prod.id,
@@ -670,7 +713,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
         }
 
         for (const u of initialUsers) {
-          await transaction.runAsync(
+          await database.runAsync(
             `INSERT INTO users (username, password, fullName, email, phone, address, role)
              SELECT ?, ?, ?, ?, ?, ?, ?
              WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = ?)`,
@@ -688,7 +731,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
         }
 
         for (const ord of initialOrders) {
-          await transaction.runAsync(
+          await database.runAsync(
             `INSERT OR IGNORE INTO orders (id, userId, customerName, phone, address, note, paymentMethod, totalAmount, status, createdAt, itemsJson)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
@@ -706,40 +749,49 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
             ]
           );
         }
-      });
-    } else {
-      const existingCats = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
-      if (!existingCats) {
-        await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
-      }
+      } else {
+        const existingCats = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
+        if (!existingCats) {
+          await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
+        }
 
-      const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
-      if (!existingProds) {
-        await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
-      }
+        const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
+        if (!existingProds) {
+          await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
+        }
 
-      const existingUsers = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
-      if (!existingUsers) {
-        await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
-      }
+        const existingUsers = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
+        if (!existingUsers) {
+          await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
+        }
 
-      const existingOrders = await AsyncStorage.getItem(ASYNC_KEYS.ORDERS);
-      if (!existingOrders) {
-        await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
+        const existingOrders = await AsyncStorage.getItem(ASYNC_KEYS.ORDERS);
+        if (!existingOrders) {
+          await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
+        }
       }
+      isDbInitialized = true;
+    } catch (error) {
+      console.error('[initDatabase] Lỗi:', error);
+      useAsyncStorageFallback = true;
+      db = null;
+      try {
+        const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
+        if (!existingProds) {
+          await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
+          await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
+          await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
+          await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
+        }
+        isDbInitialized = true;
+      } catch (_) {}
+    } finally {
+      dbInitPromise = null;
     }
-  } catch (error) {
-    console.error('[initDatabase] Lỗi:', error);
-    useAsyncStorageFallback = true;
-    try {
-      const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
-      if (!existingProds) {
-        await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
-        await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
-        await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
-        await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
-      }
-    } catch (_) {}
+  })();
+
+  try {
+    await dbInitPromise;
   } finally {
     onSuccess?.();
   }
@@ -748,6 +800,7 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
 // ==================== 1. QUẢN TRỊ LOẠI SẢN PHẨM (CATEGORIES) ====================
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
+    await initDatabase();
     const database = await getDb();
     if (database) {
       return await database.getAllAsync<Category>('SELECT * FROM categories ORDER BY id ASC');
@@ -819,12 +872,11 @@ export const updateCategory = async (
 // Ràng buộc Cascade Delete: Xóa loại sản phẩm thì xóa toàn bộ sản phẩm thuộc loại đó
 export const deleteCategory = async (id: number): Promise<boolean> => {
   try {
+    await initDatabase();
     const database = await getDb();
     if (database) {
-      await database.withExclusiveTransactionAsync(async (tx) => {
-        await tx.runAsync('DELETE FROM products WHERE categoryId = ?', [id]);
-        await tx.runAsync('DELETE FROM categories WHERE id = ?', [id]);
-      });
+      await database.runAsync('DELETE FROM products WHERE categoryId = ?', [id]);
+      await database.runAsync('DELETE FROM categories WHERE id = ?', [id]);
       return true;
     }
 
@@ -845,6 +897,7 @@ export const deleteCategory = async (id: number): Promise<boolean> => {
 // ==================== 2. QUẢN TRỊ SẢN PHẨM (PRODUCTS) ====================
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
+    await initDatabase();
     const database = await getDb();
     if (database) {
       return await database.getAllAsync<Product>('SELECT * FROM products ORDER BY id DESC');
@@ -1008,6 +1061,7 @@ export const deleteProduct = async (id: number): Promise<boolean> => {
 // ==================== 3. QUẢN TRỊ USER & XÁC THỰC (USERS & AUTH) ====================
 export const fetchUsers = async (): Promise<User[]> => {
   try {
+    await initDatabase();
     const database = await getDb();
     if (database) {
       return await database.getAllAsync<User>('SELECT * FROM users ORDER BY id ASC');
@@ -1434,6 +1488,7 @@ export const clearCart = async (): Promise<void> => {
 // ==================== 5. ĐƠN HÀNG & LỊCH SỬ MUA HÀNG (ORDERS) ====================
 export const fetchOrders = async (userId?: number): Promise<Order[]> => {
   try {
+    await initDatabase();
     const database = await getDb();
     let allOrders: Order[] = [];
 

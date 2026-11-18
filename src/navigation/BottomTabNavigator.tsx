@@ -8,18 +8,17 @@ import AccountScreen from '../screens/AccountScreen';
 import AdminHomeScreen from '../screens/AdminHomeScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import LoginScreen from '../screens/LoginScreen';
-import { getCurrentUser, User } from '../data/database';
+import {
+  getCurrentUser,
+  subscribeAuthChanged,
+  notifyAuthChanged,
+  User,
+} from '../data/database';
 import { showAlert } from '../utils/alertHelper';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
-type AuthListener = (user: User | null) => void;
-const authListeners: Set<AuthListener> = new Set();
-
-export const notifyAuthChanged = async () => {
-  const user = await getCurrentUser();
-  authListeners.forEach((listener) => listener(user));
-};
+export { notifyAuthChanged };
 
 const BottomTabNavigator: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -31,12 +30,11 @@ const BottomTabNavigator: React.FC = () => {
 
   useEffect(() => {
     syncUser();
-    const listener: AuthListener = (user) => {
+    const unsubscribe = subscribeAuthChanged((user) => {
       setCurrentUser(user);
-    };
-    authListeners.add(listener);
+    });
     return () => {
-      authListeners.delete(listener);
+      unsubscribe();
     };
   }, [syncUser]);
 

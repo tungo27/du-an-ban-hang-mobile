@@ -14,9 +14,9 @@ import {
   logoutUser,
   getCartItemCount,
   fetchOrders,
+  notifyAuthChanged,
   User,
 } from '../data/database';
-import { notifyAuthChanged } from '../navigation/BottomTabNavigator';
 import Header from '../components/Header';
 import { showAlert, showConfirm } from '../utils/alertHelper';
 

@@ -16,9 +16,9 @@ import {
   getCurrentUser,
   logoutUser,
   getCartItemCount,
+  notifyAuthChanged,
   User,
 } from '../data/database';
-import { notifyAuthChanged } from '../navigation/BottomTabNavigator';
 import { showConfirm, showAlert } from '../utils/alertHelper';
 
 interface HeaderProps {
