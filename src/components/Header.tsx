@@ -17,6 +17,8 @@ import {
   logoutUser,
   getCartItemCount,
   notifyAuthChanged,
+  isAdminRole,
+  isSuperAdminRole,
   User,
 } from '../data/database';
 import { showConfirm, showAlert } from '../utils/alertHelper';
@@ -44,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
         onUserChanged(user);
       }
     } catch (error) {
-      console.error('Lỗi tải dữ liệu Header:', error);
+      console.error('Could not load header data:', error);
     }
   }, [onUserChanged]);
 
@@ -56,8 +58,8 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
 
   const handleLogout = () => {
     showConfirm(
-      'Xác nhận đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi Ngô Minh Tú Store?',
+      'Sign Out',
+      'Do you really want to sign out of TuTu Store?',
       async () => {
         await logoutUser();
         await notifyAuthChanged();
@@ -65,20 +67,22 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
         if (onUserChanged) {
           onUserChanged(null);
         }
-        showAlert('Đã đăng xuất', 'Bạn đã đăng xuất thành công.', () => {
+        showAlert('Signed Out', 'You have signed out successfully.', () => {
           navigation.navigate('MainTabs', { screen: 'UserHomeTab' });
         });
       }
     );
   };
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = isAdminRole(currentUser?.role);
+  const isSuperAdmin = isSuperAdminRole(currentUser?.role);
+
   const topSafePadding =
     insets.top > 0
       ? insets.top + 8
       : Platform.OS === 'android'
-      ? (StatusBar.currentHeight || 24) + 10
-      : 14;
+        ? (StatusBar.currentHeight || 24) + 10
+        : 14;
 
   return (
     <View style={[styles.headerContainer, { paddingTop: topSafePadding }]}>
@@ -92,16 +96,15 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
           activeOpacity={0.8}
           style={styles.brandBox}
         >
-          <Text style={styles.storeTitle}>NGÔ MINH TÚ STORE</Text>
-          <Text style={styles.storeSubtitle}>
-            {subtitle ||
-              (isAdmin
-                ? 'Hệ thống Quản trị viên - Ngô Minh Tú'
-                : 'Mua sắm trực tuyến - Ngô Minh Tú Store')}
+          <View style={styles.brandRow}>
+            <Ionicons name="storefront-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.storeTitle}>TUTU STORE</Text>
+          </View>
+          <Text style={styles.storeSubtitle} numberOfLines={1}>
+            {subtitle || (isAdmin ? 'Management Console' : 'Fashion & Footwear')}
           </Text>
         </TouchableOpacity>
 
-        {/* Khi đăng nhập Admin thì ẩn Giỏ hàng vì Admin chỉ quản lý hệ thống */}
         {!isAdmin && (
           <TouchableOpacity
             style={styles.cartBadgeButton}
@@ -109,7 +112,7 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
             activeOpacity={0.8}
           >
             <Ionicons name="cart-outline" size={16} color="#FFFFFF" />
-            <Text style={styles.cartBadgeText}>Giỏ ({cartCount})</Text>
+            <Text style={styles.cartBadgeText}>Cart ({cartCount})</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -118,79 +121,67 @@ const Header: React.FC<HeaderProps> = ({ onUserChanged, subtitle }) => {
         {currentUser ? (
           <View style={styles.loggedInContainer}>
             <View style={styles.userInfoBox}>
-              <Text style={styles.greetingText} numberOfLines={1}>
-                Xin chào,{' '}
-                <Text style={styles.userNameHighlight}>
-                  {currentUser.fullName}
-                </Text>
-              </Text>
-              <View style={styles.roleAndEmailRow}>
+              <View style={styles.identityBox}>
                 <View
                   style={[
                     styles.roleBadge,
-                    isAdmin ? styles.roleAdmin : styles.roleUser,
+                    isSuperAdmin
+                      ? styles.roleSuperAdmin
+                      : isAdmin
+                        ? styles.roleAdmin
+                        : styles.roleUser,
                   ]}
                 >
+                  <Ionicons
+                    name={
+                      isSuperAdmin
+                        ? 'shield-checkmark'
+                        : isAdmin
+                          ? 'shield-half'
+                          : 'person-outline'
+                    }
+                    size={11}
+                    color="#FFFFFF"
+                  />
                   <Text style={styles.roleBadgeText}>
-                    {isAdmin ? 'QUẢN TRỊ VIÊN' : 'KHÁCH HÀNG'}
+                    {isSuperAdmin ? 'SUPER ADMIN' : isAdmin ? 'ADMIN' : 'CUSTOMER'}
                   </Text>
                 </View>
-                <Text style={styles.usernameSubText}>
+                <Text style={styles.usernameSubText} numberOfLines={1}>
                   @{currentUser.username}
                 </Text>
               </View>
             </View>
 
             <View style={styles.userActionsRow}>
-              {isAdmin ? (
-                <TouchableOpacity
-                  style={styles.adminActionBtn}
-                  onPress={() =>
-                    navigation.navigate('MainTabs', { screen: 'AdminHomeTab' })
-                  }
-                >
-                  <Text style={styles.adminActionText}>Trang chủ Quản trị</Text>
-                </TouchableOpacity>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={styles.profileActionBtn}
-                    onPress={() => navigation.navigate('Profile')}
-                  >
-                    <Text style={styles.profileActionText}>Cập nhật TT</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.ordersActionBtn}
-                    onPress={() => navigation.navigate('OrderHistory')}
-                  >
-                    <Text style={styles.ordersActionText}>Đơn mua</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Text style={styles.logoutBtnText}>Đăng xuất</Text>
+                <Ionicons name="log-out-outline" size={12} color="#FFFFFF" />
+                <Text style={styles.actionText}>Sign Out</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <View style={styles.guestContainer}>
-            <Text style={styles.guestText}>
-              Chế độ Khách hàng (Giỏ hàng sẽ tự động đồng bộ khi Đăng nhập)
-            </Text>
+            <View style={styles.guestTextBox}>
+              <Ionicons name="information-circle-outline" size={14} color="#334155" />
+              <Text style={styles.guestText}>
+                Guest mode — your cart syncs after you sign in.
+              </Text>
+            </View>
             <View style={styles.guestButtons}>
               <TouchableOpacity
                 style={styles.loginBtn}
                 onPress={() => navigation.navigate('MainTabs', { screen: 'LoginTab' })}
               >
-                <Text style={styles.loginBtnText}>Đăng nhập</Text>
+                <Ionicons name="log-in-outline" size={12} color="#FFFFFF" />
+                <Text style={styles.loginBtnText}>Sign In</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.signupBtn}
                 onPress={() => navigation.navigate('MainTabs', { screen: 'SignupTab' })}
               >
-                <Text style={styles.signupBtnText}>Đăng ký</Text>
+                <Ionicons name="person-add-outline" size={12} color="#2563EB" />
+                <Text style={styles.signupBtnText}>Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -217,6 +208,11 @@ const styles = StyleSheet.create({
   brandBox: {
     flex: 1,
     marginRight: 8,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   storeTitle: {
     fontSize: 18,
@@ -262,27 +258,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginBottom: 8,
   },
-  greetingText: {
-    fontSize: 13,
-    color: '#1E293B',
-    fontWeight: '500',
-  },
-  userNameHighlight: {
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-  },
-  roleAndEmailRow: {
+  identityBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   roleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 4,
   },
+  roleSuperAdmin: {
+    backgroundColor: '#B91C1C',
+  },
   roleAdmin: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#7C3AED',
   },
   roleUser: {
     backgroundColor: '#2563EB',
@@ -293,58 +287,55 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   usernameSubText: {
-    fontSize: 11,
-    color: '#475569',
-    marginLeft: 4,
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
   },
   userActionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
   },
+  actionText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
   adminActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#7C3AED',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
-  adminActionText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   profileActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#2563EB',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
-  profileActionText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   ordersActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#059669',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
-  ordersActionText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#DC2626',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
-  },
-  logoutBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
   },
   guestContainer: {
     flexDirection: 'row',
@@ -353,17 +344,27 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  guestTextBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    flex: 1,
+    minWidth: 180,
+  },
   guestText: {
     fontSize: 12,
     color: '#334155',
-    flex: 1,
     fontWeight: '600',
+    flex: 1,
   },
   guestButtons: {
     flexDirection: 'row',
     gap: 8,
   },
   loginBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#2563EB',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -375,6 +376,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   signupBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 12,
     paddingVertical: 6,

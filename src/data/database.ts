@@ -33,12 +33,17 @@ export type Product = {
   id: number;
   name: string;
   price: number;
+  salePrice?: number | null;
   img: string;
   categoryId: number;
   description?: string;
   rating?: number;
   soldCount?: number;
+  stock?: number;
+  isDeleted?: number;
 };
+
+export type UserRole = 'superadmin' | 'admin' | 'user';
 
 export type User = {
   id: number;
@@ -48,7 +53,7 @@ export type User = {
   email?: string;
   phone?: string;
   address?: string;
-  role: 'admin' | 'user' | string;
+  role: UserRole | string;
   isBlocked?: number | boolean;
 };
 
@@ -82,445 +87,524 @@ export type Order = {
   items: OrderItem[];
 };
 
-// Danh sách ảnh mẫu tiện lợi (chuyên Áo, Quần, Giày, Dép) để chọn nhanh khi thêm/sửa Loại hoặc Sản phẩm
+// Order status workflow used by every screen (English labels only)
+export const ORDER_STATUSES = [
+  'Pending',
+  'Confirmed',
+  'Shipping',
+  'Delivered',
+  'Cancelled',
+] as const;
+
+export const isAdminRole = (role?: string | null): boolean =>
+  role === 'admin' || role === 'superadmin';
+
+export const isSuperAdminRole = (role?: string | null): boolean =>
+  role === 'superadmin';
+
+// Preset fashion images (Shirts, Pants, Shoes, Sandals) for quick selection
 export const PRESET_IMAGES = [
   {
-    label: 'Áo sơ mi',
+    label: 'Shirt',
     value: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
   },
   {
-    label: 'Áo thun',
+    label: 'T-Shirt',
     value: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
   },
   {
-    label: 'Áo Polo',
+    label: 'Polo',
     value: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?w=500&q=80',
   },
   {
-    label: 'Áo khoác',
+    label: 'Jacket',
     value: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
   },
   {
-    label: 'Áo Hoodie',
-    value: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+    label: 'Hoodie',
+    value: 'https://images.unsplash.com/photo-1556821840-3a3f95609a7?w=500&q=80',
   },
   {
-    label: 'Quần Jeans',
+    label: 'Jeans',
     value: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
   },
   {
-    label: 'Quần Kaki',
+    label: 'Khaki Pants',
     value: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80',
   },
   {
-    label: 'Quần Short',
+    label: 'Shorts',
     value: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=500&q=80',
   },
   {
-    label: 'Giày Sneaker',
+    label: 'Sneakers',
     value: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
   },
   {
-    label: 'Dép & Sandal',
+    label: 'Sandals',
     value: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=500&q=80',
   },
 ];
 
-// Dữ liệu mẫu danh mục chuyên biệt Áo, Quần, Giày, Dép (8 danh mục tại Ngô Minh Tú Store)
+// Sample categories of TuTu Store (8 fashion categories)
 const initialCategories: Category[] = [
   {
     id: 1,
-    name: 'Áo Sơ Mi & Polo',
+    name: 'Shirts & Polos',
     img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=300&q=80',
   },
   {
     id: 2,
-    name: 'Áo Thun & Tanktop',
+    name: 'T-Shirts & Tanktops',
     img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300&q=80',
   },
   {
     id: 3,
-    name: 'Áo Khoác & Hoodie',
+    name: 'Jackets & Hoodies',
     img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&q=80',
   },
   {
     id: 4,
-    name: 'Quần Jeans & Denim',
+    name: 'Jeans & Denim',
     img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=300&q=80',
   },
   {
     id: 5,
-    name: 'Quần Kaki & Quần Âu',
+    name: 'Khaki & Trousers',
     img: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=300&q=80',
   },
   {
     id: 6,
-    name: 'Quần Short & Jogger',
+    name: 'Shorts & Joggers',
     img: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=300&q=80',
   },
   {
     id: 7,
-    name: 'Giày Sneaker & Thể Thao',
+    name: 'Sneakers & Sport Shoes',
     img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&q=80',
   },
   {
     id: 8,
-    name: 'Dép, Sandal & Giày Lười',
+    name: 'Sandals & Slip-ons',
     img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=300&q=80',
   },
 ];
 
-// Dữ liệu mẫu sản phẩm 100% Áo, Quần, Giày, Dép (28 sản phẩm trải rộng các phân khúc giá)
+// Sample products (28 items) with sale price, stock and soft delete flag
 const initialProducts: Product[] = [
-  // --- Danh mục 1: Áo Sơ Mi & Polo ---
+  // --- Category 1: Shirts & Polos ---
   {
     id: 1,
-    name: 'Áo sơ mi Oxford Slimfit Minh Tú',
+    name: 'Oxford Slimfit Shirt',
     price: 250000,
+    salePrice: 199000,
+    stock: 40,
     img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
     categoryId: 1,
     description:
-      'Áo sơ mi Oxford chất liệu 100% cotton cao cấp tại Ngô Minh Tú Store, thoáng mát, chống nhăn, form dáng Slimfit trẻ trung lịch lãm.',
+      'Premium 100% cotton Oxford shirt from TuTu Store. Breathable, wrinkle resistant and cut in a modern slimfit silhouette.',
     rating: 4.9,
     soldCount: 420,
+    isDeleted: 0,
   },
   {
     id: 2,
-    name: 'Áo Polo Nam Pique Cao Cấp Minh Tú',
+    name: 'Premium Pique Polo Shirt',
     price: 295000,
+    salePrice: 235000,
+    stock: 25,
     img: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?w=500&q=80',
     categoryId: 1,
     description:
-      'Áo Polo vải cá sấu Pique co giãn 4 chiều, bo cổ dệt sắc nét, phù hợp đi làm công sở và dạo phố cuối tuần.',
+      'Pique polo with 4-way stretch fabric and a sharp ribbed collar. Perfect for the office or a weekend walk.',
     rating: 4.8,
     soldCount: 310,
+    isDeleted: 0,
   },
   {
     id: 3,
-    name: 'Áo sơ mi Linen Cộc Tay Mùa Hè',
+    name: 'Summer Linen Short Sleeve Shirt',
     price: 220000,
+    stock: 32,
     img: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80',
     categoryId: 1,
     description:
-      'Áo sơ mi đũi Linen mềm nhẹ, thoáng khí, mang phong cách Hàn Quốc trẻ trung năng động tại Ngô Minh Tú Store.',
+      'Lightweight linen shirt with a soft touch and breathable weave, styled with a young Korean-inspired look.',
     rating: 4.7,
     soldCount: 195,
+    isDeleted: 0,
   },
   {
     id: 4,
-    name: 'Áo sơ mi Kẻ Sọc Công Sở Minh Tú',
+    name: 'Striped Office Shirt',
     price: 275000,
+    stock: 18,
     img: 'https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=500&q=80',
     categoryId: 1,
     description:
-      'Áo sơ mi dài tay họa tiết kẻ sọc thanh lịch, vải sợi tre Bamboo kháng khuẩn và giữ form chuẩn suốt ngày dài.',
+      'Long sleeve striped shirt in bamboo fiber fabric, antibacterial and shape retentive all day long.',
     rating: 4.9,
     soldCount: 260,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 2: Áo Thun & Tanktop ---
+  // --- Category 2: T-Shirts & Tanktops ---
   {
     id: 5,
-    name: 'Áo thun Cotton Basic Unisex Minh Tú',
+    name: 'Basic Cotton T-Shirt Unisex',
     price: 165000,
+    salePrice: 129000,
+    stock: 60,
     img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500&q=80',
     categoryId: 2,
     description:
-      'Áo thun cổ tròn form suông rộng rãi, vải 100% Cotton 2 chiều dày dặn 250gsm, thấm hút mồ hôi tốt, không xù lông.',
+      'Relaxed crew neck t-shirt in 250gsm two-way cotton. Highly absorbent, no pilling and keeps its shape.',
     rating: 4.8,
     soldCount: 680,
+    isDeleted: 0,
   },
   {
     id: 6,
-    name: 'Áo thun Oversize Streetwear Minh Tú',
+    name: 'Oversize Streetwear T-Shirt',
     price: 195000,
+    stock: 45,
     img: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&q=80',
     categoryId: 2,
     description:
-      'Áo phông đen form rộng tay lỡ phong cách Streetwear trẻ trung, chất thun cotton co giãn 4 chiều mát lạnh.',
+      'Drop shoulder oversize tee in a cool streetwear style with 4-way stretch cotton.',
     rating: 4.9,
     soldCount: 530,
+    isDeleted: 0,
   },
   {
     id: 7,
-    name: 'Áo thun Thể Thao Dry-Fit Thoáng Khí',
+    name: 'Dry-Fit Sports T-Shirt',
     price: 145000,
+    stock: 55,
     img: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=500&q=80',
     categoryId: 2,
     description:
-      'Áo thun thể thao công nghệ dệt lỗ thoáng khí Dry-Fit siêu nhẹ, nhanh khô khi chạy bộ hoặc tập luyện thể thao.',
+      'Ultra light Dry-Fit mesh sports tee that dries fast while running or training.',
     rating: 4.7,
     soldCount: 410,
+    isDeleted: 0,
   },
   {
     id: 8,
-    name: 'Áo Tanktop Tập Gym Nam Co Giãn',
+    name: 'Stretch Gym Tanktop',
     price: 120000,
+    stock: 38,
     img: 'https://images.unsplash.com/photo-1503341455253-b2e723bb3dbb?w=500&q=80',
     categoryId: 2,
     description:
-      'Áo ba lỗ Tanktop năng động khỏe khoắn, chất vải thun lạnh thoáng mát chuyên dụng cho tập Gym và vận động ngoài trời.',
+      'Sporty tanktop in cool touch fabric, designed for gym sessions and outdoor activities.',
     rating: 4.8,
     soldCount: 345,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 3: Áo Khoác & Hoodie ---
+  // --- Category 3: Jackets & Hoodies ---
   {
     id: 9,
-    name: 'Áo Khoác Da Biker Jacket Ngô Minh Tú',
+    name: 'Biker Leather Jacket',
     price: 1250000,
+    salePrice: 990000,
+    stock: 8,
     img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
     categoryId: 3,
     description:
-      'Áo khoác da phong cách Biker mạnh mẽ tại Ngô Minh Tú Store, lớp lót lụa mịn bên trong chắn gió giữ ấm tuyệt vời.',
+      'Bold biker leather jacket with a smooth silk lining that blocks wind and keeps you warm.',
     rating: 4.9,
     soldCount: 165,
+    isDeleted: 0,
   },
   {
     id: 10,
-    name: 'Áo Hoodie Nỉ Bông Oversize Minh Tú',
+    name: 'Oversize Fleece Hoodie',
     price: 340000,
-    img: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=500&q=80',
+    stock: 0,
+    img: 'https://images.unsplash.com/photo-1556821840-3a3f95609a7?w=500&q=80',
     categoryId: 3,
     description:
-      'Áo Hoodie nỉ ngoại dày dặn ấm áp, mũ 2 lớp đứng form, túi kangaroo phía trước rộng rãi.',
+      'Warm heavyweight fleece hoodie with a double layer hood and a roomy kangaroo pocket.',
     rating: 4.8,
     soldCount: 620,
+    isDeleted: 0,
   },
   {
     id: 11,
-    name: 'Áo Khoác Gió 2 Lớp Chống Tia UV',
+    name: 'Two-Layer UV Protection Windbreaker',
     price: 275000,
+    stock: 22,
     img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500&q=80',
     categoryId: 3,
     description:
-      'Áo khoác dù 2 lớp trượt nước nhẹ, chống nắng UPF50+, gấp gọn dễ dàng mang theo mỗi ngày.',
+      'Light two-layer water repellent windbreaker with UPF50+ protection, easy to fold and carry.',
     rating: 4.8,
     soldCount: 740,
+    isDeleted: 0,
   },
   {
     id: 12,
-    name: 'Áo Khoác Bomber Kaki Lót Dù Minh Tú',
+    name: 'Khaki Bomber Jacket',
     price: 450000,
+    stock: 14,
     img: 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=500&q=80',
     categoryId: 3,
     description:
-      'Áo khoác Bomber cổ bo dệt gân khỏe khoắn, khóa kéo đồng mượt mà kèm túi tay áo tiện dụng.',
+      'Khaki bomber jacket with ribbed collar and cuffs, smooth metal zipper and a handy sleeve pocket.',
     rating: 4.9,
     soldCount: 290,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 4: Quần Jeans & Denim ---
+  // --- Category 4: Jeans & Denim ---
   {
     id: 13,
-    name: 'Quần Jeans Nam Slimfit Co Giãn Minh Tú',
+    name: 'Slimfit Stretch Jeans',
     price: 420000,
+    salePrice: 349000,
+    stock: 30,
     img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
     categoryId: 4,
     description:
-      'Quần Jeans denim xanh chàm co giãn nhẹ, giữ form tốt, không phai màu khi giặt máy.',
+      'Indigo stretch denim jeans that keep their shape and do not fade after machine washing.',
     rating: 4.8,
     soldCount: 390,
+    isDeleted: 0,
   },
   {
     id: 14,
-    name: 'Quần Jeans Ống Suông Straight Ngô Minh Tú',
+    name: 'Straight Leg Jeans',
     price: 460000,
+    stock: 26,
     img: 'https://images.unsplash.com/photo-1604176354204-9268737828e4?w=500&q=80',
     categoryId: 4,
     description:
-      'Quần bò ống đứng form Straight cổ điển che khuyết điểm tốt, chất vải Denim dày dặn bền bỉ.',
+      'Classic straight leg jeans in durable heavy denim that flatters every body shape.',
     rating: 4.9,
     soldCount: 315,
+    isDeleted: 0,
   },
   {
     id: 15,
-    name: 'Quần Jeans Đen Tuyền Basic Minh Tú',
+    name: 'Basic Black Jeans',
     price: 395000,
+    stock: 0,
     img: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&q=80',
     categoryId: 4,
     description:
-      'Quần Jeans màu đen tuyền dễ phối cùng áo sơ mi, áo thun và giày sneaker cho mọi dịp đi học, đi làm.',
+      'Solid black jeans that pair easily with shirts, tees and sneakers for school or work.',
     rating: 4.7,
     soldCount: 440,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 5: Quần Kaki & Quần Âu ---
+  // --- Category 5: Khaki & Trousers ---
   {
     id: 16,
-    name: 'Quần Kaki Công Sở Chống Nhăn Minh Tú',
+    name: 'Wrinkle-Free Khaki Trousers',
     price: 350000,
+    stock: 34,
     img: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80',
     categoryId: 5,
     description:
-      'Quần dài Kaki ống đứng lịch sự, chất vải cotton pha spandex mềm mại, thoải mái khi ngồi làm việc cả ngày.',
+      'Straight leg khaki trousers in soft cotton spandex, comfortable for a full working day.',
     rating: 4.8,
     soldCount: 460,
+    isDeleted: 0,
   },
   {
     id: 17,
-    name: 'Quần Âu Nam Sidetab Lịch Lãm Minh Tú',
+    name: 'Sidetab Dress Trousers',
     price: 480000,
+    stock: 16,
     img: 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=500&q=80',
     categoryId: 5,
     description:
-      'Quần tây nam thiết kế Sidetab điều chỉnh vòng eo tinh tế, ly quần sắc nét tôn dáng sang trọng.',
+      'Tailored dress trousers with adjustable sidetabs and a sharp front crease.',
     rating: 4.9,
     soldCount: 280,
+    isDeleted: 0,
   },
   {
     id: 18,
-    name: 'Quần Kaki Túi Hộp Cargo Streetwear',
+    name: 'Cargo Pocket Khaki Pants',
     price: 370000,
+    stock: 21,
     img: 'https://images.unsplash.com/photo-1517445312882-bc9910d016b7?w=500&q=80',
     categoryId: 5,
     description:
-      'Quần dài Kaki túi hộp 2 bên hông năng động bụi bặm, chất vải kaki dày dặn co giãn nhẹ.',
+      'Streetwear cargo pants with dual side pockets and slightly stretchy heavy khaki fabric.',
     rating: 4.8,
     soldCount: 335,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 6: Quần Short & Jogger ---
+  // --- Category 6: Shorts & Joggers ---
   {
     id: 19,
-    name: 'Quần Short Kaki Nam Mùa Hè Minh Tú',
+    name: 'Summer Khaki Shorts',
     price: 185000,
+    stock: 48,
     img: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=500&q=80',
     categoryId: 6,
     description:
-      'Quần short ngang gối trẻ trung năng động, cạp chun phối dây rút tiện lợi cho những chuyến du lịch biển.',
+      'Above the knee casual shorts with elastic waist and drawstring, great for beach trips.',
     rating: 4.7,
     soldCount: 510,
+    isDeleted: 0,
   },
   {
     id: 20,
-    name: 'Quần Jogger Nỉ Thể Thao Bo Gấu Minh Tú',
+    name: 'Cuffed Fleece Joggers',
     price: 260000,
+    stock: 29,
     img: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=500&q=80',
     categoryId: 6,
     description:
-      'Quần Jogger thun nỉ da cá co giãn 4 chiều, bo ống gọn gàng tôn dáng khi phối cùng giày thể thao.',
+      '4-way stretch fleece joggers with cuffed ankles that pair perfectly with sneakers.',
     rating: 4.8,
     soldCount: 395,
+    isDeleted: 0,
   },
   {
     id: 21,
-    name: 'Quần Short Thể Thao Chạy Bộ 2 Lớp',
+    name: 'Two-Layer Running Shorts',
     price: 140000,
+    stock: 52,
     img: 'https://images.unsplash.com/photo-1562183241-b937e95585b6?w=500&q=80',
     categoryId: 6,
     description:
-      'Quần đùi gió thể thao siêu nhẹ có túi khóa kéo chống rơi điện thoại khi chạy bộ, đá bóng.',
+      'Ultra light running shorts with a zip pocket that keeps your phone safe while training.',
     rating: 4.8,
     soldCount: 615,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 7: Giày Sneaker & Thể Thao ---
+  // --- Category 7: Sneakers & Sport Shoes ---
   {
     id: 22,
-    name: 'Giày Sneaker Retro Red Sport Minh Tú',
+    name: 'Retro Red Sport Sneakers',
     price: 1100000,
+    salePrice: 890000,
+    stock: 12,
     img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
     categoryId: 7,
     description:
-      'Giày thể thao nam nữ phong cách năng động, đế đệm khí êm ái chống trơn trượt, trọng lượng siêu nhẹ thích hợp chạy bộ.',
+      'Unisex sport sneakers with an air cushioned non-slip sole, ultra light and perfect for running.',
     rating: 4.9,
     soldCount: 540,
+    isDeleted: 0,
   },
   {
     id: 23,
-    name: 'Giày Sneaker Trắng Classic Minimalist',
+    name: 'Classic White Minimalist Sneakers',
     price: 650000,
+    stock: 24,
     img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500&q=80',
     categoryId: 7,
     description:
-      'Giày Sneaker da microfiber trắng tinh tế, dễ phối cùng quần jeans, quần âu hoặc quần short, đế cao su đúc nguyên khối.',
+      'Microfiber white sneakers that pair with jeans, trousers or shorts, built on a solid rubber sole.',
     rating: 4.8,
     soldCount: 490,
+    isDeleted: 0,
   },
   {
     id: 24,
-    name: 'Giày Chạy Bộ UltraBoost Pro Minh Tú',
+    name: 'UltraBoost Pro Running Shoes',
     price: 1450000,
+    stock: 9,
     img: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500&q=80',
     categoryId: 7,
     description:
-      'Giày chạy bộ chuyên nghiệp với thân vải dệt Primeknit ôm chân thoáng khí và đế hoàn trả năng lượng vượt trội.',
+      'Professional running shoes with Primeknit upper and an energy return midsole.',
     rating: 5.0,
     soldCount: 275,
+    isDeleted: 0,
   },
   {
     id: 25,
-    name: 'Giày Thể Thao Cổ Cao High-Top Minh Tú',
+    name: 'High-Top Sport Sneakers',
     price: 790000,
+    stock: 17,
     img: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?w=500&q=80',
     categoryId: 7,
     description:
-      'Giày Sneaker cổ cao cá tính phối màu trẻ trung, đệm cổ chân êm ái bảo vệ cổ chân khi vận động.',
+      'High-top sneakers with a bold color mix and soft ankle padding for extra support.',
     rating: 4.9,
     soldCount: 320,
+    isDeleted: 0,
   },
 
-  // --- Danh mục 8: Dép, Sandal & Giày Lười ---
+  // --- Category 8: Sandals & Slip-ons ---
   {
     id: 26,
-    name: 'Giày Lười Canvas Slip-On Minh Tú',
+    name: 'Canvas Slip-On Shoes',
     price: 380000,
+    salePrice: 299000,
+    stock: 20,
     img: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=500&q=80',
     categoryId: 8,
     description:
-      'Giày lười vải Canvas bền đẹp, thiết kế không dây xỏ chân nhanh chóng tiện lợi cho sinh viên và dân văn phòng.',
+      'Durable canvas slip-ons without laces, quick to put on for students and office workers.',
     rating: 4.7,
     soldCount: 360,
+    isDeleted: 0,
   },
   {
     id: 27,
-    name: 'Dép Quai Ngang Đế Đúc Êm Chân Minh Tú',
+    name: 'Comfort EVA Slide Sandals',
     price: 150000,
+    salePrice: 99000,
+    stock: 0,
     img: 'https://images.unsplash.com/photo-1603487742131-4160ec999306?w=500&q=80',
     categoryId: 8,
     description:
-      'Dép lê quai ngang chất liệu EVA nguyên sinh siêu nhẹ, chống thấm nước và chống trơn trượt tuyệt đối.',
+      'Single strap EVA sandals, ultra light, waterproof and slip resistant.',
     rating: 4.9,
     soldCount: 890,
+    isDeleted: 0,
   },
   {
     id: 28,
-    name: 'Dép Sandal Quai Hậu Đi Học Đi Biển',
+    name: 'Hiking Strap Sandals',
     price: 245000,
+    stock: 23,
     img: 'https://images.unsplash.com/photo-1562273138-f46be4ebdf33?w=500&q=80',
     categoryId: 8,
     description:
-      'Giày dép Sandal quai dù chắc chắn, khóa dán điều chỉnh linh hoạt, đế cao su bám đường cực tốt.',
+      'Sturdy strap sandals with adjustable hook and loop closure and a grippy rubber sole.',
     rating: 4.8,
     soldCount: 640,
+    isDeleted: 0,
   },
 ];
 
-// Đơn hàng mẫu khởi tạo sẵn (chỉ gồm Áo, Quần, Giày, Dép) để kiểm tra nhanh Lịch sử đơn hàng & Quản trị đơn hàng của Admin
+// Sample orders so Order History and Admin Orders have data on first launch
 const initialOrders: Order[] = [
   {
     id: 1001,
     userId: 3,
-    customerName: 'Ngô Minh Tú',
+    customerName: 'Ngo Minh Tu',
     phone: '0988666888',
-    address: '68 Điện Biên Phủ, Thanh Khê, Đà Nẵng',
-    note: 'Giao giờ hành chính giúp mình',
-    paymentMethod: 'COD (Thanh toán khi nhận hàng)',
+    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
+    note: 'Please deliver during office hours',
+    paymentMethod: 'Cash on Delivery (COD)',
     totalAmount: 670000,
-    status: 'Chờ xác nhận',
+    status: 'Pending',
     createdAt: '09/11/2026 14:20',
     items: [
       {
         productId: 1,
-        productName: 'Áo sơ mi Oxford Slimfit Minh Tú',
+        productName: 'Oxford Slimfit Shirt',
         price: 250000,
         img: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&q=80',
         quantity: 1,
       },
       {
         productId: 13,
-        productName: 'Quần Jeans Nam Slimfit Co Giãn Minh Tú',
+        productName: 'Slimfit Stretch Jeans',
         price: 420000,
         img: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&q=80',
         quantity: 1,
@@ -530,18 +614,18 @@ const initialOrders: Order[] = [
   {
     id: 1002,
     userId: 3,
-    customerName: 'Ngô Minh Tú',
+    customerName: 'Ngo Minh Tu',
     phone: '0988666888',
-    address: '68 Điện Biên Phủ, Thanh Khê, Đà Nẵng',
-    note: 'Gọi trước khi giao 15 phút',
-    paymentMethod: 'Chuyển khoản ngân hàng',
+    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
+    note: 'Call 15 minutes before delivery',
+    paymentMethod: 'Bank Transfer',
     totalAmount: 1100000,
-    status: 'Đang giao hàng',
+    status: 'Shipping',
     createdAt: '10/11/2026 08:15',
     items: [
       {
         productId: 22,
-        productName: 'Giày Sneaker Retro Red Sport Minh Tú',
+        productName: 'Retro Red Sport Sneakers',
         price: 1100000,
         img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
         quantity: 1,
@@ -550,52 +634,52 @@ const initialOrders: Order[] = [
   },
 ];
 
-// Yêu cầu B.1: Khởi tạo database với tài khoản Admin có sẵn (mang tên Ngô Minh Tú)
+// Seeded accounts: 1 super admin, 1 admin, 1 normal user
 const initialUsers: User[] = [
   {
     id: 1,
     username: 'admin',
     password: '123',
-    fullName: 'Ngô Minh Tú (Admin)',
-    email: 'admin.ngominhtu@gmail.com',
+    fullName: 'TuTu Super Admin',
+    email: 'admin.tutu@gmail.com',
     phone: '0988111222',
-    address: '123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng',
-    role: 'admin',
+    address: '123 Nguyen Van Linh, Hai Chau, Da Nang',
+    role: 'superadmin',
   },
   {
     id: 2,
     username: 'minhtu_admin',
     password: '123',
-    fullName: 'Ngô Minh Tú (Quản trị viên)',
+    fullName: 'TuTu Admin',
     email: 'minhtu.admin@gmail.com',
     phone: '0988222333',
-    address: '45 Lê Duẩn, Hải Châu, Đà Nẵng',
+    address: '45 Le Duan, Hai Chau, Da Nang',
     role: 'admin',
   },
   {
     id: 3,
     username: 'ngominh_tu',
     password: '123',
-    fullName: 'Ngô Minh Tú',
+    fullName: 'Ngo Minh Tu',
     email: 'ngominhtu@gmail.com',
     phone: '0988666888',
-    address: '68 Điện Biên Phủ, Thanh Khê, Đà Nẵng',
+    address: '68 Dien Bien Phu, Thanh Khe, Da Nang',
     role: 'user',
   },
 ];
 
 const ASYNC_KEYS = {
-  CATEGORIES: '@minhtu_categories_b14_v4',
-  PRODUCTS: '@minhtu_products_b14_v4',
-  USERS: '@minhtu_users_b14_v4',
-  CURRENT_USER: '@minhtu_current_user_b14_v4',
-  CART: '@minhtu_cart_b14_v4',
-  CART_GUEST: '@minhtu_cart_guest_b14_v4',
-  CART_USER_PREFIX: '@minhtu_cart_user_b14_v4_',
-  ORDERS: '@minhtu_orders_b14_v4',
+  CATEGORIES: '@tutu_categories_v5',
+  PRODUCTS: '@tutu_products_v5',
+  USERS: '@tutu_users_v5',
+  CURRENT_USER: '@tutu_current_user_v5',
+  CART: '@tutu_cart_v5',
+  CART_GUEST: '@tutu_cart_guest_v5',
+  CART_USER_PREFIX: '@tutu_cart_user_v5_',
+  ORDERS: '@tutu_orders_v5',
 };
 
-// ==================== KHỞI TẠO CƠ SỞ DỮ LIỆU ====================
+// ==================== DATABASE INITIALIZATION ====================
 const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
   if (useAsyncStorageFallback) return null;
   if (db) return db;
@@ -603,12 +687,12 @@ const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
 
   dbOpenPromise = (async () => {
     try {
-      const openedDb = await SQLite.openDatabaseAsync('minhTuStore_b14_v4.db');
+      const openedDb = await SQLite.openDatabaseAsync('tutuStore_v5.db');
       await openedDb.execAsync('PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON;');
       db = openedDb;
       return db;
     } catch (err) {
-      console.warn('[getDb] Không mở được SQLite native, chuyển sang AsyncStorage:', err);
+      console.warn('[getDb] Cannot open native SQLite, switching to AsyncStorage:', err);
       useAsyncStorageFallback = true;
       db = null;
       return null;
@@ -618,6 +702,28 @@ const getDb = async (): Promise<SQLite.SQLiteDatabase | null> => {
   })();
 
   return dbOpenPromise;
+};
+
+const seedAsyncStorageIfNeeded = async (): Promise<void> => {
+  const existingCats = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
+  if (!existingCats) {
+    await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
+  }
+
+  const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
+  if (!existingProds) {
+    await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
+  }
+
+  const existingUsers = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
+  if (!existingUsers) {
+    await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
+  }
+
+  const existingOrders = await AsyncStorage.getItem(ASYNC_KEYS.ORDERS);
+  if (!existingOrders) {
+    await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
+  }
 };
 
 export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
@@ -650,24 +756,27 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
           );
           CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            price REAL,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            salePrice REAL,
             img TEXT,
             categoryId INTEGER,
             description TEXT,
-            rating REAL,
-            soldCount INTEGER,
+            rating REAL DEFAULT 4.0,
+            soldCount INTEGER DEFAULT 0,
+            stock INTEGER DEFAULT 0,
+            isDeleted INTEGER DEFAULT 0,
             FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE CASCADE
           );
           CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
             fullName TEXT,
             email TEXT,
             phone TEXT,
             address TEXT,
-            role TEXT,
+            role TEXT DEFAULT 'user',
             isBlocked INTEGER DEFAULT 0
           );
           CREATE TABLE IF NOT EXISTS orders (
@@ -685,9 +794,18 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
           );
         `);
 
-        try {
-          await database.execAsync('ALTER TABLE users ADD COLUMN isBlocked INTEGER DEFAULT 0;');
-        } catch (_) {}
+        // Safe upgrades for databases created by older versions
+        const alterColumns = [
+          'ALTER TABLE products ADD COLUMN salePrice REAL;',
+          'ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0;',
+          'ALTER TABLE products ADD COLUMN isDeleted INTEGER DEFAULT 0;',
+          'ALTER TABLE users ADD COLUMN isBlocked INTEGER DEFAULT 0;',
+        ];
+        for (const sql of alterColumns) {
+          try {
+            await database.execAsync(sql);
+          } catch (_) {}
+        }
 
         for (const cat of initialCategories) {
           await database.runAsync(
@@ -698,16 +816,20 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
 
         for (const prod of initialProducts) {
           await database.runAsync(
-            'INSERT OR IGNORE INTO products (id, name, price, img, categoryId, description, rating, soldCount) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            `INSERT OR IGNORE INTO products (id, name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               prod.id,
               prod.name,
               prod.price,
+              prod.salePrice ?? null,
               prod.img,
               prod.categoryId,
               prod.description || '',
-              prod.rating || 5.0,
+              prod.rating || 4.0,
               prod.soldCount || 0,
+              prod.stock ?? 0,
+              prod.isDeleted ?? 0,
             ]
           );
         }
@@ -750,39 +872,16 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
           );
         }
       } else {
-        const existingCats = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
-        if (!existingCats) {
-          await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
-        }
-
-        const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
-        if (!existingProds) {
-          await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
-        }
-
-        const existingUsers = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
-        if (!existingUsers) {
-          await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
-        }
-
-        const existingOrders = await AsyncStorage.getItem(ASYNC_KEYS.ORDERS);
-        if (!existingOrders) {
-          await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
-        }
+        await seedAsyncStorageIfNeeded();
       }
       isDbInitialized = true;
     } catch (error) {
-      console.error('[initDatabase] Lỗi:', error);
+      // If native SQLite is locked, fall back to AsyncStorage silently
+      console.warn('[initDatabase] Falling back to AsyncStorage:', error);
       useAsyncStorageFallback = true;
       db = null;
       try {
-        const existingProds = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
-        if (!existingProds) {
-          await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(initialCategories));
-          await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(initialProducts));
-          await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(initialUsers));
-          await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(initialOrders));
-        }
+        await seedAsyncStorageIfNeeded();
         isDbInitialized = true;
       } catch (_) {}
     } finally {
@@ -797,7 +896,14 @@ export const initDatabase = async (onSuccess?: () => void): Promise<void> => {
   }
 };
 
-// ==================== 1. QUẢN TRỊ LOẠI SẢN PHẨM (CATEGORIES) ====================
+const normalizeProduct = (row: Product): Product => ({
+  ...row,
+  salePrice: row.salePrice === null || row.salePrice === undefined ? null : Number(row.salePrice),
+  stock: row.stock === null || row.stock === undefined ? 0 : Number(row.stock),
+  isDeleted: Number(row.isDeleted ?? 0),
+});
+
+// ==================== 1. CATEGORY MANAGEMENT ====================
 export const fetchCategories = async (): Promise<Category[]> => {
   try {
     await initDatabase();
@@ -808,8 +914,9 @@ export const fetchCategories = async (): Promise<Category[]> => {
     const json = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
     return json ? JSON.parse(json) : initialCategories;
   } catch (error) {
-    console.error('[fetchCategories] Lỗi:', error);
-    return initialCategories;
+    console.warn('[fetchCategories] AsyncStorage fallback:', error);
+    const json = await AsyncStorage.getItem(ASYNC_KEYS.CATEGORIES);
+    return json ? JSON.parse(json) : initialCategories;
   }
 };
 
@@ -833,7 +940,7 @@ export const addCategory = async (name: string, img?: string): Promise<boolean> 
     await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(updated));
     return true;
   } catch (error) {
-    console.error('[addCategory] Lỗi:', error);
+    console.error('[addCategory] Error:', error);
     return false;
   }
 };
@@ -864,12 +971,12 @@ export const updateCategory = async (
     await AsyncStorage.setItem(ASYNC_KEYS.CATEGORIES, JSON.stringify(updated));
     return true;
   } catch (error) {
-    console.error('[updateCategory] Lỗi:', error);
+    console.error('[updateCategory] Error:', error);
     return false;
   }
 };
 
-// Ràng buộc Cascade Delete: Xóa loại sản phẩm thì xóa toàn bộ sản phẩm thuộc loại đó
+// Cascade delete: deleting a category also removes every product inside it
 export const deleteCategory = async (id: number): Promise<boolean> => {
   try {
     await initDatabase();
@@ -881,7 +988,7 @@ export const deleteCategory = async (id: number): Promise<boolean> => {
     }
 
     const cats = await fetchCategories();
-    const prods = await fetchProducts();
+    const prods = await fetchAllProducts();
     const filteredCats = cats.filter((c) => c.id !== id);
     const filteredProds = prods.filter((p) => p.categoryId !== id);
 
@@ -889,53 +996,69 @@ export const deleteCategory = async (id: number): Promise<boolean> => {
     await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(filteredProds));
     return true;
   } catch (error) {
-    console.error('[deleteCategory] Lỗi:', error);
+    console.error('[deleteCategory] Error:', error);
     return false;
   }
 };
 
-// ==================== 2. QUẢN TRỊ SẢN PHẨM (PRODUCTS) ====================
+// ==================== 2. PRODUCT MANAGEMENT ====================
+// Admin view: every row, including soft deleted ones
+export const fetchAllProducts = async (): Promise<Product[]> => {
+  try {
+    await initDatabase();
+    const database = await getDb();
+    if (database) {
+      const rows = await database.getAllAsync<Product>('SELECT * FROM products ORDER BY id DESC');
+      return rows.map(normalizeProduct);
+    }
+    const json = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
+    const list: Product[] = json ? JSON.parse(json) : initialProducts;
+    return list.map(normalizeProduct);
+  } catch (error) {
+    console.warn('[fetchAllProducts] AsyncStorage fallback:', error);
+    const json = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
+    const list: Product[] = json ? JSON.parse(json) : initialProducts;
+    return list.map(normalizeProduct);
+  }
+};
+
+// Storefront view: soft deleted products are hidden
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
     await initDatabase();
     const database = await getDb();
     if (database) {
-      return await database.getAllAsync<Product>('SELECT * FROM products ORDER BY id DESC');
+      const rows = await database.getAllAsync<Product>(
+        'SELECT * FROM products WHERE isDeleted = 0 ORDER BY id DESC'
+      );
+      return rows.map(normalizeProduct);
     }
-    const json = await AsyncStorage.getItem(ASYNC_KEYS.PRODUCTS);
-    return json ? JSON.parse(json) : initialProducts;
+    const all = await fetchAllProducts();
+    return all.filter((p) => Number(p.isDeleted ?? 0) === 0);
   } catch (error) {
-    console.error('[fetchProducts] Lỗi:', error);
-    return initialProducts;
+    console.warn('[fetchProducts] AsyncStorage fallback:', error);
+    const all = await fetchAllProducts();
+    return all.filter((p) => Number(p.isDeleted ?? 0) === 0);
   }
 };
 
 export const getProductById = async (id: number): Promise<Product | null> => {
   try {
-    const prods = await fetchProducts();
+    const prods = await fetchAllProducts();
     return prods.find((p) => p.id === id) || null;
   } catch (error) {
-    console.error('[getProductById] Lỗi:', error);
+    console.error('[getProductById] Error:', error);
     return null;
   }
 };
 
 export const fetchProductsByCategory = async (categoryId: number): Promise<Product[]> => {
   try {
-    if (categoryId === 0) {
-      return await fetchProducts();
-    }
-    const database = await getDb();
-    if (database) {
-      return await database.getAllAsync<Product>(
-        'SELECT * FROM products WHERE categoryId = ? ORDER BY id DESC',
-        [categoryId]
-      );
-    }
     const prods = await fetchProducts();
+    if (categoryId === 0) return prods;
     return prods.filter((p) => p.categoryId === categoryId);
   } catch (error) {
-    console.error('[fetchProductsByCategory] Lỗi:', error);
+    console.error('[fetchProductsByCategory] Error:', error);
     return [];
   }
 };
@@ -947,7 +1070,47 @@ export const searchProducts = async (keyword: string): Promise<Product[]> => {
     if (!trimmed) return prods;
     return prods.filter((p) => p.name.toLowerCase().includes(trimmed));
   } catch (error) {
-    console.error('[searchProducts] Lỗi:', error);
+    console.error('[searchProducts] Error:', error);
+    return [];
+  }
+};
+
+export const getSaleProducts = async (): Promise<Product[]> => {
+  try {
+    const prods = await fetchProducts();
+    return prods.filter(
+      (p) =>
+        p.salePrice !== null &&
+        p.salePrice !== undefined &&
+        Number(p.salePrice) > 0 &&
+        Number(p.salePrice) < Number(p.price) &&
+        Number(p.isDeleted ?? 0) === 0
+    );
+  } catch (error) {
+    console.error('[getSaleProducts] Error:', error);
+    return [];
+  }
+};
+
+// Random suggestions: exclude cart products, only in stock and not deleted
+export const getRecommendedProducts = async (
+  excludeIds: number[] = [],
+  limit: number = 8
+): Promise<Product[]> => {
+  try {
+    const prods = await fetchProducts();
+    const excluded = new Set(excludeIds);
+    const pool = prods.filter(
+      (p) => !excluded.has(p.id) && Number(p.stock ?? 0) > 0 && Number(p.isDeleted ?? 0) === 0
+    );
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, limit);
+  } catch (error) {
+    console.error('[getRecommendedProducts] Error:', error);
     return [];
   }
 };
@@ -955,6 +1118,8 @@ export const searchProducts = async (keyword: string): Promise<Product[]> => {
 export const addProduct = async (payload: {
   name: string;
   price: number;
+  salePrice?: number | null;
+  stock?: number;
   img: string;
   categoryId: number;
   description?: string;
@@ -963,33 +1128,44 @@ export const addProduct = async (payload: {
     const database = await getDb();
     const cleanImg = payload.img.trim() || PRESET_IMAGES[0].value;
     const desc =
-      payload.description?.trim() ||
-      'Sản phẩm chính hãng phân phối tại Ngô Minh Tú Store.';
+      payload.description?.trim() || 'Genuine product distributed by TuTu Store.';
+    const salePrice =
+      payload.salePrice !== null &&
+      payload.salePrice !== undefined &&
+      Number(payload.salePrice) > 0 &&
+      Number(payload.salePrice) < Number(payload.price)
+        ? Number(payload.salePrice)
+        : null;
+    const stock = Math.max(0, Number(payload.stock ?? 0));
 
     if (database) {
       await database.runAsync(
-        'INSERT INTO products (name, price, img, categoryId, description, rating, soldCount) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [payload.name.trim(), payload.price, cleanImg, payload.categoryId, desc, 5.0, 10]
+        `INSERT INTO products (name, price, salePrice, img, categoryId, description, rating, soldCount, stock, isDeleted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [payload.name.trim(), payload.price, salePrice, cleanImg, payload.categoryId, desc, 4.5, 0, stock, 0]
       );
       return true;
     }
 
-    const prods = await fetchProducts();
+    const prods = await fetchAllProducts();
     const nextId = prods.length > 0 ? Math.max(...prods.map((p) => p.id)) + 1 : 1;
     const newProd: Product = {
       id: nextId,
       name: payload.name.trim(),
       price: payload.price,
+      salePrice,
       img: cleanImg,
       categoryId: payload.categoryId,
       description: desc,
-      rating: 5.0,
-      soldCount: 10,
+      rating: 4.5,
+      soldCount: 0,
+      stock,
+      isDeleted: 0,
     };
     await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify([newProd, ...prods]));
     return true;
   } catch (error) {
-    console.error('[addProduct] Lỗi:', error);
+    console.error('[addProduct] Error:', error);
     return false;
   }
 };
@@ -999,6 +1175,8 @@ export const updateProduct = async (
   payload: {
     name: string;
     price: number;
+    salePrice?: number | null;
+    stock?: number;
     img: string;
     categoryId: number;
     description?: string;
@@ -1008,34 +1186,44 @@ export const updateProduct = async (
     const database = await getDb();
     const cleanImg = payload.img.trim() || PRESET_IMAGES[0].value;
     const desc =
-      payload.description?.trim() ||
-      'Sản phẩm chính hãng phân phối tại Ngô Minh Tú Store.';
+      payload.description?.trim() || 'Genuine product distributed by TuTu Store.';
+    const salePrice =
+      payload.salePrice !== null &&
+      payload.salePrice !== undefined &&
+      Number(payload.salePrice) > 0 &&
+      Number(payload.salePrice) < Number(payload.price)
+        ? Number(payload.salePrice)
+        : null;
+    const stock = Math.max(0, Number(payload.stock ?? 0));
 
     if (database) {
       await database.runAsync(
-        'UPDATE products SET name = ?, price = ?, img = ?, categoryId = ?, description = ? WHERE id = ?',
-        [payload.name.trim(), payload.price, cleanImg, payload.categoryId, desc, id]
+        `UPDATE products SET name = ?, price = ?, salePrice = ?, img = ?, categoryId = ?, description = ?, stock = ?
+         WHERE id = ?`,
+        [payload.name.trim(), payload.price, salePrice, cleanImg, payload.categoryId, desc, stock, id]
       );
       return true;
     }
 
-    const prods = await fetchProducts();
+    const prods = await fetchAllProducts();
     const updated = prods.map((p) =>
       p.id === id
         ? {
-            ...p,
-            name: payload.name.trim(),
-            price: payload.price,
-            img: cleanImg,
-            categoryId: payload.categoryId,
-            description: desc,
-          }
+          ...p,
+          name: payload.name.trim(),
+          price: payload.price,
+          salePrice,
+          img: cleanImg,
+          categoryId: payload.categoryId,
+          description: desc,
+          stock,
+        }
         : p
     );
     await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(updated));
     return true;
   } catch (error) {
-    console.error('[updateProduct] Lỗi:', error);
+    console.error('[updateProduct] Error:', error);
     return false;
   }
 };
@@ -1048,17 +1236,106 @@ export const deleteProduct = async (id: number): Promise<boolean> => {
       return true;
     }
 
-    const prods = await fetchProducts();
+    const prods = await fetchAllProducts();
     const filtered = prods.filter((p) => p.id !== id);
     await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('[deleteProduct] Lỗi:', error);
+    console.error('[deleteProduct] Error:', error);
     return false;
   }
 };
 
-// ==================== 3. QUẢN TRỊ USER & XÁC THỰC (USERS & AUTH) ====================
+// Soft delete: keep the row but hide it from the storefront
+export const softDeleteProduct = async (productId: number): Promise<boolean> => {
+  try {
+    const database = await getDb();
+    if (database) {
+      await database.runAsync('UPDATE products SET isDeleted = 1 WHERE id = ?', [productId]);
+      return true;
+    }
+    const prods = await fetchAllProducts();
+    const updated = prods.map((p) =>
+      p.id === productId ? { ...p, isDeleted: 1 } : p
+    );
+    await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(updated));
+    return true;
+  } catch (error) {
+    console.error('[softDeleteProduct] Error:', error);
+    return false;
+  }
+};
+
+export const restoreProduct = async (productId: number): Promise<boolean> => {
+  try {
+    const database = await getDb();
+    if (database) {
+      await database.runAsync('UPDATE products SET isDeleted = 0 WHERE id = ?', [productId]);
+      return true;
+    }
+    const prods = await fetchAllProducts();
+    const updated = prods.map((p) =>
+      p.id === productId ? { ...p, isDeleted: 0 } : p
+    );
+    await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(updated));
+    return true;
+  } catch (error) {
+    console.error('[restoreProduct] Error:', error);
+    return false;
+  }
+};
+
+export const updateProductStock = async (
+  productId: number,
+  newStock: number
+): Promise<boolean> => {
+  try {
+    const safeStock = Math.max(0, Math.floor(newStock));
+    const database = await getDb();
+    if (database) {
+      await database.runAsync('UPDATE products SET stock = ? WHERE id = ?', [
+        safeStock,
+        productId,
+      ]);
+      return true;
+    }
+    const prods = await fetchAllProducts();
+    const updated = prods.map((p) =>
+      p.id === productId ? { ...p, stock: safeStock } : p
+    );
+    await AsyncStorage.setItem(ASYNC_KEYS.PRODUCTS, JSON.stringify(updated));
+    return true;
+  } catch (error) {
+    console.error('[updateProductStock] Error:', error);
+    return false;
+  }
+};
+
+export const deductStock = async (
+  productId: number,
+  quantity: number
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const prods = await fetchAllProducts();
+    const prod = prods.find((p) => p.id === productId);
+    if (!prod) {
+      return { success: false, message: 'Product not found.' };
+    }
+    const currentStock = Number(prod.stock ?? 0);
+    if (currentStock < quantity) {
+      return { success: false, message: `Insufficient stock for ${prod.name}` };
+    }
+    const ok = await updateProductStock(productId, currentStock - quantity);
+    return ok
+      ? { success: true }
+      : { success: false, message: `Could not update stock for ${prod.name}` };
+  } catch (error) {
+    console.error('[deductStock] Error:', error);
+    return { success: false, message: 'Could not update stock.' };
+  }
+};
+
+// ==================== 3. USER MANAGEMENT & AUTH ====================
 export const fetchUsers = async (): Promise<User[]> => {
   try {
     await initDatabase();
@@ -1069,8 +1346,9 @@ export const fetchUsers = async (): Promise<User[]> => {
     const json = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
     return json ? JSON.parse(json) : initialUsers;
   } catch (error) {
-    console.error('[fetchUsers] Lỗi:', error);
-    return initialUsers;
+    console.warn('[fetchUsers] AsyncStorage fallback:', error);
+    const json = await AsyncStorage.getItem(ASYNC_KEYS.USERS);
+    return json ? JSON.parse(json) : initialUsers;
   }
 };
 
@@ -1090,7 +1368,7 @@ export const registerUser = async (payload: {
     if (existed) {
       return {
         success: false,
-        message: 'Tên đăng nhập này đã tồn tại! Vui lòng chọn tên khác.',
+        message: 'This username already exists. Please choose another one.',
       };
     }
 
@@ -1102,7 +1380,7 @@ export const registerUser = async (payload: {
       if (emailExisted) {
         return {
           success: false,
-          message: 'Email này đã được đăng ký! Vui lòng sử dụng email khác.',
+          message: 'This email is already registered. Please use another email.',
         };
       }
     }
@@ -1133,32 +1411,32 @@ export const registerUser = async (payload: {
       };
       return {
         success: true,
-        message: 'Đăng ký tài khoản thành công!',
-        user: newUser,
-      };
-    } else {
-      const nextId = users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1;
-      const newUser: User = {
-        id: nextId,
-        username: cleanUsername,
-        password: payload.password,
-        fullName: payload.fullName.trim(),
-        email: payload.email?.trim() || '',
-        phone: payload.phone?.trim() || '',
-        address: payload.address?.trim() || '',
-        role: 'user',
-      };
-      users.push(newUser);
-      await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(users));
-      return {
-        success: true,
-        message: 'Đăng ký tài khoản thành công!',
+        message: 'Account registered successfully.',
         user: newUser,
       };
     }
+
+    const nextId = users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1;
+    const newUser: User = {
+      id: nextId,
+      username: cleanUsername,
+      password: payload.password,
+      fullName: payload.fullName.trim(),
+      email: payload.email?.trim() || '',
+      phone: payload.phone?.trim() || '',
+      address: payload.address?.trim() || '',
+      role: 'user',
+    };
+    users.push(newUser);
+    await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(users));
+    return {
+      success: true,
+      message: 'Account registered successfully.',
+      user: newUser,
+    };
   } catch (error) {
-    console.error('[registerUser] Lỗi:', error);
-    return { success: false, message: 'Có lỗi xảy ra khi lưu người dùng vào CSDL.' };
+    console.error('[registerUser] Error:', error);
+    return { success: false, message: 'Could not save the account. Please try again.' };
   }
 };
 
@@ -1179,7 +1457,7 @@ export const loginUser = async (
     if (!foundUser) {
       return {
         success: false,
-        message: 'Sai tên đăng nhập hoặc mật khẩu! Vui lòng kiểm tra lại.',
+        message: 'Incorrect username or password. Please check again.',
       };
     }
 
@@ -1187,25 +1465,25 @@ export const loginUser = async (
       return {
         success: false,
         message:
-          'Tài khoản của bạn đã bị Quản trị viên chặn (khóa)! Vui lòng liên hệ Ngô Minh Tú Store để được hỗ trợ.',
+          'Your account has been blocked by the administrator. Please contact TuTu Store for support.',
       };
     }
 
     await AsyncStorage.setItem(ASYNC_KEYS.CURRENT_USER, JSON.stringify(foundUser));
 
-    // Đồng bộ (Sync) giỏ hàng từ trạng thái Guest vào giỏ hàng của User khi đăng nhập (nếu là khách hàng)
-    if (foundUser.role !== 'admin') {
+    // Sync the guest cart into the user cart right after signing in
+    if (!isAdminRole(foundUser.role)) {
       await syncGuestCartToUserCart(foundUser.id);
     }
 
     return {
       success: true,
-      message: 'Đăng nhập thành công!',
+      message: 'Signed in successfully.',
       user: foundUser,
     };
   } catch (error) {
-    console.error('[loginUser] Lỗi:', error);
-    return { success: false, message: 'Lỗi khi kiểm tra đăng nhập từ CSDL.' };
+    console.error('[loginUser] Error:', error);
+    return { success: false, message: 'Could not verify the account. Please try again.' };
   }
 };
 
@@ -1214,7 +1492,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     const json = await AsyncStorage.getItem(ASYNC_KEYS.CURRENT_USER);
     return json ? JSON.parse(json) : null;
   } catch (error) {
-    console.error('[getCurrentUser] Lỗi:', error);
+    console.error('[getCurrentUser] Error:', error);
     return null;
   }
 };
@@ -1223,14 +1501,14 @@ export const logoutUser = async (): Promise<void> => {
   try {
     await AsyncStorage.removeItem(ASYNC_KEYS.CURRENT_USER);
   } catch (error) {
-    console.error('[logoutUser] Lỗi:', error);
+    console.error('[logoutUser] Error:', error);
   }
 };
 
-// Quản trị User: Cập nhật vai trò (admin <-> user)
+// Admin tool: change a user role (superadmin / admin / user)
 export const updateUserRole = async (
   userId: number,
-  newRole: 'admin' | 'user'
+  newRole: UserRole
 ): Promise<boolean> => {
   try {
     const database = await getDb();
@@ -1251,12 +1529,12 @@ export const updateUserRole = async (
     }
     return true;
   } catch (error) {
-    console.error('[updateUserRole] Lỗi:', error);
+    console.error('[updateUserRole] Error:', error);
     return false;
   }
 };
 
-// Quản trị User: Chặn / Mở chặn người dùng (Không xóa user)
+// Admin tool: block / unblock an account
 export const toggleBlockUser = async (
   userId: number,
   blockStatus: boolean
@@ -1283,12 +1561,12 @@ export const toggleBlockUser = async (
     }
     return true;
   } catch (error) {
-    console.error('[toggleBlockUser] Lỗi:', error);
+    console.error('[toggleBlockUser] Error:', error);
     return false;
   }
 };
 
-// Quản trị User: Xóa user (giữ lại hàm dự phòng nhưng trên UI Admin chỉ dùng Chặn user)
+// Super admin tool: permanently remove an account
 export const deleteUser = async (userId: number): Promise<boolean> => {
   try {
     const database = await getDb();
@@ -1302,12 +1580,11 @@ export const deleteUser = async (userId: number): Promise<boolean> => {
     await AsyncStorage.setItem(ASYNC_KEYS.USERS, JSON.stringify(filtered));
     return true;
   } catch (error) {
-    console.error('[deleteUser] Lỗi:', error);
+    console.error('[deleteUser] Error:', error);
     return false;
   }
 };
 
-// Chức năng người dùng: Cập nhật thông tin cá nhân
 export const updateUserProfile = async (
   userId: number,
   payload: {
@@ -1358,12 +1635,12 @@ export const updateUserProfile = async (
     await AsyncStorage.setItem(ASYNC_KEYS.CURRENT_USER, JSON.stringify(updatedUser));
     return { success: true, user: updatedUser };
   } catch (error) {
-    console.error('[updateUserProfile] Lỗi:', error);
+    console.error('[updateUserProfile] Error:', error);
     return { success: false };
   }
 };
 
-// ==================== 4. GIỎ HÀNG (CART) & SYNC GUEST -> USER ====================
+// ==================== 4. CART & GUEST -> USER SYNC ====================
 const getActiveCartKey = async (): Promise<string> => {
   const current = await getCurrentUser();
   if (current && current.id > 0) {
@@ -1396,7 +1673,7 @@ export const syncGuestCartToUserCart = async (userId: number): Promise<void> => 
     await AsyncStorage.setItem(userCartKey, JSON.stringify(userItems));
     await AsyncStorage.removeItem(ASYNC_KEYS.CART_GUEST);
   } catch (error) {
-    console.error('[syncGuestCartToUserCart] Lỗi đồng bộ giỏ hàng:', error);
+    console.error('[syncGuestCartToUserCart] Cart sync failed:', error);
   }
 };
 
@@ -1406,7 +1683,7 @@ export const fetchCartItems = async (): Promise<CartItem[]> => {
     const json = await AsyncStorage.getItem(key);
     return json ? JSON.parse(json) : [];
   } catch (error) {
-    console.error('[fetchCartItems] Lỗi:', error);
+    console.error('[fetchCartItems] Error:', error);
     return [];
   }
 };
@@ -1419,14 +1696,22 @@ export const addToCart = async (
     const key = await getActiveCartKey();
     const items = await fetchCartItems();
     const existingIndex = items.findIndex((item) => item.productId === product.id);
+    const unitPrice =
+      product.salePrice !== null &&
+      product.salePrice !== undefined &&
+      Number(product.salePrice) > 0 &&
+      Number(product.salePrice) < Number(product.price)
+        ? Number(product.salePrice)
+        : product.price;
 
     if (existingIndex >= 0) {
       items[existingIndex].quantity += quantity;
+      items[existingIndex].price = unitPrice;
     } else {
       items.push({
         productId: product.id,
         productName: product.name,
-        price: product.price,
+        price: unitPrice,
         img: product.img,
         quantity,
       });
@@ -1435,7 +1720,7 @@ export const addToCart = async (
     await AsyncStorage.setItem(key, JSON.stringify(items));
     return items;
   } catch (error) {
-    console.error('[addToCart] Lỗi:', error);
+    console.error('[addToCart] Error:', error);
     return [];
   }
 };
@@ -1458,7 +1743,7 @@ export const updateCartItemQuantity = async (
     await AsyncStorage.setItem(key, JSON.stringify(updated));
     return updated;
   } catch (error) {
-    console.error('[updateCartItemQuantity] Lỗi:', error);
+    console.error('[updateCartItemQuantity] Error:', error);
     return [];
   }
 };
@@ -1471,7 +1756,7 @@ export const removeFromCart = async (productId: number): Promise<CartItem[]> => 
     await AsyncStorage.setItem(key, JSON.stringify(updated));
     return updated;
   } catch (error) {
-    console.error('[removeFromCart] Lỗi:', error);
+    console.error('[removeFromCart] Error:', error);
     return [];
   }
 };
@@ -1481,11 +1766,11 @@ export const clearCart = async (): Promise<void> => {
     const key = await getActiveCartKey();
     await AsyncStorage.setItem(key, JSON.stringify([]));
   } catch (error) {
-    console.error('[clearCart] Lỗi:', error);
+    console.error('[clearCart] Error:', error);
   }
 };
 
-// ==================== 5. ĐƠN HÀNG & LỊCH SỬ MUA HÀNG (ORDERS) ====================
+// ==================== 5. ORDERS & PURCHASE HISTORY ====================
 export const fetchOrders = async (userId?: number): Promise<Order[]> => {
   try {
     await initDatabase();
@@ -1530,11 +1815,12 @@ export const fetchOrders = async (userId?: number): Promise<Order[]> => {
     }
     return allOrders;
   } catch (error) {
-    console.error('[fetchOrders] Lỗi:', error);
+    console.error('[fetchOrders] Error:', error);
     return [];
   }
 };
 
+// Place an order: validates stock, deducts stock and persists the order
 export const createOrder = async (payload: {
   userId: number;
   customerName: string;
@@ -1543,14 +1829,36 @@ export const createOrder = async (payload: {
   note?: string;
   paymentMethod: string;
   items: OrderItem[];
-}): Promise<{ success: boolean; order?: Order }> => {
+}): Promise<{ success: boolean; order?: Order; message?: string }> => {
   try {
+    if (!payload.items || payload.items.length === 0) {
+      return { success: false, message: 'Your cart is empty.' };
+    }
+
+    const allProducts = await fetchAllProducts();
+    for (const item of payload.items) {
+      const prod = allProducts.find((p) => p.id === item.productId);
+      if (!prod) {
+        return { success: false, message: `Product not found: ${item.productName}` };
+      }
+      if (Number(prod.stock ?? 0) < item.quantity) {
+        return { success: false, message: `Insufficient stock for ${prod.name}` };
+      }
+    }
+
+    for (const item of payload.items) {
+      const deduct = await deductStock(item.productId, item.quantity);
+      if (!deduct.success) {
+        return { success: false, message: deduct.message };
+      }
+    }
+
     const totalAmount = payload.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
-    const createdAt = new Date().toLocaleString('vi-VN');
-    const status = 'Đã xác nhận - Đang giao hàng';
+    const createdAt = new Date().toLocaleString('en-GB');
+    const status = 'Pending';
     const itemsJson = JSON.stringify(payload.items);
 
     const database = await getDb();
@@ -1586,35 +1894,37 @@ export const createOrder = async (payload: {
       };
       await clearCart();
       return { success: true, order: newOrder };
-    } else {
-      const existing = await fetchOrders();
-      const nextId =
-        existing.length > 0 ? Math.max(...existing.map((o) => o.id)) + 1 : 1001;
-      const newOrder: Order = {
-        id: nextId,
-        userId: payload.userId,
-        customerName: payload.customerName.trim(),
-        phone: payload.phone.trim(),
-        address: payload.address.trim(),
-        note: payload.note?.trim() || '',
-        paymentMethod: payload.paymentMethod,
-        totalAmount,
-        status,
-        createdAt,
-        items: payload.items,
-      };
-      await AsyncStorage.setItem(
-        ASYNC_KEYS.ORDERS,
-        JSON.stringify([newOrder, ...existing])
-      );
-      await clearCart();
-      return { success: true, order: newOrder };
     }
+
+    const existing = await fetchOrders();
+    const nextId =
+      existing.length > 0 ? Math.max(...existing.map((o) => o.id)) + 1 : 1001;
+    const newOrder: Order = {
+      id: nextId,
+      userId: payload.userId,
+      customerName: payload.customerName.trim(),
+      phone: payload.phone.trim(),
+      address: payload.address.trim(),
+      note: payload.note?.trim() || '',
+      paymentMethod: payload.paymentMethod,
+      totalAmount,
+      status,
+      createdAt,
+      items: payload.items,
+    };
+    await AsyncStorage.setItem(
+      ASYNC_KEYS.ORDERS,
+      JSON.stringify([newOrder, ...existing])
+    );
+    await clearCart();
+    return { success: true, order: newOrder };
   } catch (error) {
-    console.error('[createOrder] Lỗi:', error);
-    return { success: false };
+    console.error('[createOrder] Error:', error);
+    return { success: false, message: 'Could not save your order. Please try again.' };
   }
 };
+
+export const placeOrder = createOrder;
 
 export const updateOrderStatus = async (
   orderId: number,
@@ -1637,13 +1947,12 @@ export const updateOrderStatus = async (
     await AsyncStorage.setItem(ASYNC_KEYS.ORDERS, JSON.stringify(updated));
     return true;
   } catch (error) {
-    console.error('[updateOrderStatus] Lỗi:', error);
+    console.error('[updateOrderStatus] Error:', error);
     return false;
   }
 };
 
-
-// ==================== 6. CÁC HÀM HELPER BỔ SUNG & ALIAS ====================
+// ==================== 6. HELPERS & ALIASES ====================
 export const getProductImageSource = (img?: string) => {
   if (!img || img.startsWith('local:')) {
     return require('../../assets/images/hinh1.jpg');
@@ -1670,10 +1979,14 @@ export const searchAndFilterProducts = async (
       p.name.toLowerCase().includes(kw) ||
       catName.includes(kw) ||
       (p.description || '').toLowerCase().includes(kw);
+    const effectivePrice =
+      p.salePrice !== null && p.salePrice !== undefined && Number(p.salePrice) > 0
+        ? Number(p.salePrice)
+        : p.price;
     const matchMin =
-      minPrice === undefined || isNaN(minPrice) || p.price >= minPrice;
+      minPrice === undefined || isNaN(minPrice) || effectivePrice >= minPrice;
     const matchMax =
-      maxPrice === undefined || isNaN(maxPrice) || p.price <= maxPrice;
+      maxPrice === undefined || isNaN(maxPrice) || effectivePrice <= maxPrice;
     return matchCat && matchKw && matchMin && matchMax;
   });
 };

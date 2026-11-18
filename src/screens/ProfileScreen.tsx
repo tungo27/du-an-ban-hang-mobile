@@ -11,12 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
-import {
-  getCurrentUser,
-  updateUserProfile,
-  User,
-} from '../data/database';
+import { getCurrentUser, updateUserProfile, User } from '../data/database';
 import Header from '../components/Header';
 import { showAlert } from '../utils/alertHelper';
 
@@ -51,7 +48,7 @@ const ProfileScreen: React.FC = () => {
   const handleSaveProfile = async () => {
     if (!user) return;
     if (!fullName.trim() || !email.trim()) {
-      showAlert('Thiếu thông tin', 'Họ và tên và Email không được để trống!');
+      showAlert('Missing Information', 'Full name and email cannot be empty.');
       return;
     }
 
@@ -64,34 +61,31 @@ const ProfileScreen: React.FC = () => {
     });
 
     if (!res.success) {
-      showAlert('Lỗi cập nhật', 'Không thể cập nhật thông tin người dùng.');
+      showAlert('Update Failed', 'Could not update your profile. Please try again.');
       return;
     }
 
     setHeaderKey((prev) => prev + 1);
     await loadUser();
-    showAlert(
-      'Cập nhật thành công',
-      'Đã lưu thông tin cá nhân mới vào CSDL Ngô Minh Tú Store!'
-    );
+    showAlert('Profile Updated', 'Your profile has been saved to TuTu Store.');
   };
 
   if (!user) {
     return (
       <View style={styles.container}>
-        <Header subtitle="Cập nhật thông tin cá nhân" />
+        <Header subtitle="Edit Profile" />
         <View style={styles.notLoggedBox}>
-          <Text style={styles.notLoggedTitle}>
-            Bạn chưa đăng nhập tài khoản
-          </Text>
+          <Ionicons name="person-circle-outline" size={38} color="#94A3B8" />
+          <Text style={styles.notLoggedTitle}>You are not signed in</Text>
           <Text style={styles.notLoggedSub}>
-            Vui lòng đăng nhập tài khoản (ví dụ: ngominh_tu / 123) để xem và cập nhật thông tin cá nhân.
+            Please sign in (e.g. ngominh_tu / 123) to view and update your profile.
           </Text>
           <TouchableOpacity
             style={styles.goLoginBtn}
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={styles.goLoginText}>ĐẾN TRANG ĐĂNG NHẬP</Text>
+            <Ionicons name="log-in-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.goLoginText}>Go to Sign In</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -111,20 +105,23 @@ const ProfileScreen: React.FC = () => {
       >
         <Header
           key={headerKey}
-          subtitle="Cập nhật thông tin người dùng"
+          subtitle="Edit Profile"
           onUserChanged={(u) => setUser(u)}
         />
 
         <View style={styles.card}>
-          <Text style={styles.title}>THÔNG TIN CÁ NHÂN NGƯỜI DÙNG</Text>
+          <View style={styles.titleRow}>
+            <Ionicons name="create-outline" size={18} color="#1E3A8A" />
+            <Text style={styles.title}>PERSONAL INFORMATION</Text>
+          </View>
           <Text style={styles.metaInfo}>
-            Username: @{user.username} | Vai trò: {user.role.toUpperCase()}
+            @{user.username} | Role: {String(user.role).toUpperCase()}
           </Text>
 
-          <Text style={styles.label}>Họ và tên (*)</Text>
+          <Text style={styles.label}>Full name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: Ngô Minh Tú"
+            placeholder="e.g. Ngo Minh Tu"
             placeholderTextColor="#94A3B8"
             value={fullName}
             onChangeText={setFullName}
@@ -133,37 +130,37 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.label}>Email (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: ngominhtu@gmail.com"
+            placeholder="e.g. ngominhtu@gmail.com"
             placeholderTextColor="#94A3B8"
+            keyboardType="email-address"
+            autoCapitalize="none"
             value={email}
             onChangeText={setEmail}
           />
 
-          <Text style={styles.label}>Số điện thoại</Text>
+          <Text style={styles.label}>Phone number</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: 0988123456 (Ngô Minh Tú)"
+            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
 
-          <Text style={styles.label}>Địa chỉ mặc định</Text>
+          <Text style={styles.label}>Default address</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: Hải Châu, Đà Nẵng - Ngô Minh Tú"
+            placeholder="e.g. Hai Chau, Da Nang - Ngo Minh Tu"
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
           />
 
-          <Text style={styles.label}>
-            Đổi mật khẩu mới (Để trống nếu giữ nguyên mật khẩu cũ)
-          </Text>
+          <Text style={styles.label}>New password (leave blank to keep current)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nhập mật khẩu mới nếu muốn thay đổi"
+            placeholder="Enter a new password if you want to change it"
             placeholderTextColor="#94A3B8"
             secureTextEntry
             value={newPassword}
@@ -171,7 +168,8 @@ const ProfileScreen: React.FC = () => {
           />
 
           <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-            <Text style={styles.saveBtnText}>LƯU CẬP NHẬT THÔNG TIN</Text>
+            <Ionicons name="save-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.saveBtnText}>SAVE CHANGES</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -180,13 +178,8 @@ const ProfileScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  scrollContent: {
-    paddingBottom: 130,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { paddingBottom: 130 },
   card: {
     backgroundColor: '#FFFFFF',
     margin: 14,
@@ -195,24 +188,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  title: {
-    fontSize: 17,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-    marginBottom: 4,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { fontSize: 17, fontWeight: 'bold', color: '#1E3A8A' },
   metaInfo: {
     fontSize: 12,
     color: '#64748B',
+    marginTop: 4,
     marginBottom: 14,
     fontWeight: '600',
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
-  },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
   input: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -225,17 +210,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: '#2563EB',
     paddingVertical: 13,
     borderRadius: 8,
-    alignItems: 'center',
     marginTop: 6,
   },
-  saveBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  saveBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' },
   notLoggedBox: {
     margin: 16,
     padding: 24,
@@ -249,6 +233,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1E293B',
+    marginTop: 8,
     marginBottom: 8,
   },
   notLoggedSub: {
@@ -256,18 +241,18 @@ const styles = StyleSheet.create({
     color: '#64748B',
     textAlign: 'center',
     marginBottom: 16,
+    lineHeight: 19,
   },
   goLoginBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#2563EB',
     paddingHorizontal: 18,
     paddingVertical: 11,
     borderRadius: 8,
   },
-  goLoginText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
+  goLoginText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 13 },
 });
 
 export default ProfileScreen;

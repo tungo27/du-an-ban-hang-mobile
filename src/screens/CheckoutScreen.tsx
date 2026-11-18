@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import {
   fetchCartItems,
   getCurrentUser,
   createOrder,
   getProductImageSource,
+  isAdminRole,
   CartItem,
   User,
 } from '../data/database';
@@ -25,16 +27,27 @@ import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
 import { showAlert } from '../utils/alertHelper';
 
+const PAYMENT_METHODS: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  { label: 'Cash on Delivery (COD)', icon: 'cash-outline' },
+  { label: 'Bank Transfer (TuTu Store)', icon: 'card-outline' },
+  { label: 'E-Wallet (MoMo / VNPAY)', icon: 'wallet-outline' },
+];
+
 const CheckoutScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientPhone, setRecipientPhone] = useState<string>('');
   const [recipientAddress, setRecipientAddress] = useState<string>('');
+  const [note, setNote] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>(
-    'Thanh toán khi nhận hàng (COD)'
+    PAYMENT_METHODS[0].label
   );
 
   useFocusEffect(
@@ -42,18 +55,18 @@ const CheckoutScreen: React.FC = () => {
       Promise.all([fetchCartItems(), getCurrentUser()]).then(([items, user]) => {
         if (!user) {
           showAlert(
-            'Yêu cầu đăng nhập',
-            'Chỉ người dùng đã đăng nhập mới được phép thực hiện Checkout. Vui lòng đăng nhập để đồng bộ giỏ hàng và đặt hàng!',
+            'Sign In Required',
+            'Only signed-in customers can check out. Please sign in to sync your cart and place an order.',
             () => {
               navigation.navigate('Login', { redirectTo: 'Checkout' });
             }
           );
           return;
         }
-        if (user.role === 'admin') {
+        if (isAdminRole(user.role)) {
           showAlert(
-            'Chế độ Quản trị viên',
-            'Tài khoản Admin không thực hiện đặt mua hàng!',
+            'Administrator Account',
+            'Admin accounts cannot place orders. Please use a customer account.',
             () => {
               navigation.navigate('MainTabs', { screen: 'AdminHomeTab' });
             }
@@ -65,7 +78,7 @@ const CheckoutScreen: React.FC = () => {
         setRecipientName((prev) => prev || user.fullName);
         setRecipientPhone((prev) => prev || user.phone || '0988123456');
         setRecipientAddress(
-          (prev) => prev || user.address || 'Hải Châu, Đà Nẵng - Ngô Minh Tú'
+          (prev) => prev || user.address || 'Hai Chau, Da Nang (Ngo Minh Tu)'
         );
       });
     }, [navigation])
@@ -78,18 +91,14 @@ const CheckoutScreen: React.FC = () => {
 
   const handlePlaceOrder = async () => {
     if (!currentUser) {
-      showAlert(
-        'Chưa đăng nhập',
-        'Vui lòng đăng nhập tài khoản trước khi xác nhận đặt hàng!',
-        () => {
-          navigation.navigate('Login', { redirectTo: 'Checkout' });
-        }
-      );
+      showAlert('Not Signed In', 'Please sign in before placing your order.', () => {
+        navigation.navigate('Login', { redirectTo: 'Checkout' });
+      });
       return;
     }
 
     if (cartItems.length === 0) {
-      showAlert('Giỏ hàng trống', 'Không có sản phẩm nào để đặt hàng!');
+      showAlert('Your cart is empty', 'There are no products to order.');
       return;
     }
 
@@ -99,39 +108,46 @@ const CheckoutScreen: React.FC = () => {
       !recipientAddress.trim()
     ) {
       showAlert(
-        'Thiếu thông tin giao hàng',
-        'Vui lòng điền đầy đủ Họ tên người nhận, Số điện thoại và Địa chỉ nhận hàng!'
+        'Missing Delivery Details',
+        'Please fill in the recipient name, phone number and delivery address.'
       );
       return;
     }
 
+    if (submitting) return;
+    setSubmitting(true);
     const result = await createOrder({
       userId: currentUser.id,
       customerName: recipientName.trim(),
       phone: recipientPhone.trim(),
       address: recipientAddress.trim(),
+      note: note.trim(),
       paymentMethod,
       items: cartItems,
     });
+    setSubmitting(false);
 
     if (!result.success) {
-      showAlert('Lỗi đặt hàng', 'Không thể lưu đơn hàng vào CSDL.');
+      showAlert(
+        'Order Failed',
+        result.message || 'Could not save your order. Please try again.'
+      );
       return;
     }
 
     showAlert(
-      'Đặt hàng thành công',
-      'Đơn hàng tại Ngô Minh Tú Store đã được tạo thành công!',
+      'Order Placed',
+      `Your order #${result.order?.id ?? ''} at TuTu Store was created successfully.`,
       () => {
         navigation.navigate('OrderHistory');
       }
     );
   };
 
-  if (!currentUser || currentUser.role === 'admin') {
+  if (!currentUser || isAdminRole(currentUser.role)) {
     return (
       <View style={styles.container}>
-        <Header subtitle="Checkout & Đặt hàng" />
+        <Header subtitle="Checkout & Order Confirmation" />
       </View>
     );
   }
@@ -147,70 +163,92 @@ const CheckoutScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Header subtitle="Checkout & Xác nhận Đặt hàng" />
+        <Header subtitle="Checkout & Order Confirmation" />
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>1. THÔNG TIN NGƯỜI NHẬN HÀNG</Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="person-circle-outline" size={18} color="#1E3A8A" />
+            <Text style={styles.sectionTitle}>1. DELIVERY DETAILS</Text>
+          </View>
 
-          <Text style={styles.label}>Họ và tên người nhận (*)</Text>
+          <Text style={styles.label}>Recipient name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: Ngô Minh Tú"
+            placeholder="e.g. Ngo Minh Tu"
             placeholderTextColor="#94A3B8"
             value={recipientName}
             onChangeText={setRecipientName}
           />
 
-          <Text style={styles.label}>Số điện thoại liên hệ (*)</Text>
+          <Text style={styles.label}>Phone number (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: 0988123456 (Ngô Minh Tú)"
+            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={recipientPhone}
             onChangeText={setRecipientPhone}
           />
 
-          <Text style={styles.label}>Địa chỉ giao hàng chi tiết (*)</Text>
+          <Text style={styles.label}>Delivery address (*)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
-            placeholder="vd: Số 123 Nguyễn Văn Linh, Đà Nẵng (Ngô Minh Tú)"
+            placeholder="e.g. 123 Nguyen Van Linh, Da Nang (Ngo Minh Tu)"
             placeholderTextColor="#94A3B8"
             multiline
             value={recipientAddress}
             onChangeText={setRecipientAddress}
           />
+
+          <Text style={styles.label}>Order note (optional)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Delivery instructions for the shop..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            value={note}
+            onChangeText={setNote}
+          />
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>2. PHƯƠNG THỨC THANH TOÁN</Text>
-          {[
-            'Thanh toán khi nhận hàng (COD)',
-            'Chuyển khoản Ngân hàng (Ngô Minh Tú Store)',
-            'Ví điện tử MoMo / VNPAY',
-          ].map((method) => {
-            const active = paymentMethod === method;
+          <View style={styles.sectionHeader}>
+            <Ionicons name="card-outline" size={18} color="#1E3A8A" />
+            <Text style={styles.sectionTitle}>2. PAYMENT METHOD</Text>
+          </View>
+          {PAYMENT_METHODS.map((method) => {
+            const active = paymentMethod === method.label;
             return (
               <TouchableOpacity
-                key={method}
+                key={method.label}
                 style={[styles.methodOption, active && styles.methodOptionActive]}
-                onPress={() => setPaymentMethod(method)}
+                onPress={() => setPaymentMethod(method.label)}
               >
-                <Text
-                  style={[styles.methodText, active && styles.methodTextActive]}
-                >
-                  {active ? '[ĐÃ CHỌN] ' : '[ ] '}
-                  {method}
+                <Ionicons
+                  name={method.icon}
+                  size={18}
+                  color={active ? '#1D4ED8' : '#64748B'}
+                />
+                <Text style={[styles.methodText, active && styles.methodTextActive]}>
+                  {method.label}
                 </Text>
+                <Ionicons
+                  name={active ? 'radio-button-on' : 'radio-button-off'}
+                  size={18}
+                  color={active ? '#2563EB' : '#CBD5E1'}
+                />
               </TouchableOpacity>
             );
           })}
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            3. SẢN PHẨM TRONG ĐƠN HÀNG ({cartItems.length} MÓN)
-          </Text>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="bag-check-outline" size={18} color="#1E3A8A" />
+            <Text style={styles.sectionTitle}>
+              3. ITEMS IN YOUR ORDER ({cartItems.length})
+            </Text>
+          </View>
           {cartItems.map((item) => (
             <View key={item.productId} style={styles.summaryItemCard}>
               <Image
@@ -223,10 +261,10 @@ const CheckoutScreen: React.FC = () => {
                   {item.productName}
                 </Text>
                 <Text style={styles.summaryItemSub}>
-                  Đơn giá: {formatPrice(item.price)} | Số lượng: x{item.quantity}
+                  {formatPrice(item.price)} x{item.quantity}
                 </Text>
                 <Text style={styles.summaryItemPrice}>
-                  Thành tiền: {formatPrice(item.price * item.quantity)}
+                  {formatPrice(item.price * item.quantity)}
                 </Text>
               </View>
             </View>
@@ -234,16 +272,18 @@ const CheckoutScreen: React.FC = () => {
 
           <View style={styles.divider} />
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TỔNG CỘNG THANH TOÁN:</Text>
+            <Text style={styles.totalLabel}>ORDER TOTAL:</Text>
             <Text style={styles.totalAmount}>{formatPrice(totalAmount)}</Text>
           </View>
 
           <TouchableOpacity
-            style={styles.placeOrderBtn}
+            style={[styles.placeOrderBtn, submitting && styles.placeOrderBtnDisabled]}
             onPress={handlePlaceOrder}
+            disabled={submitting}
           >
+            <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
             <Text style={styles.placeOrderBtnText}>
-              XÁC NHẬN ĐẶT HÀNG NGAY
+              {submitting ? 'PLACING ORDER...' : 'CONFIRM & PLACE ORDER'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -253,13 +293,8 @@ const CheckoutScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  scrollContent: {
-    paddingBottom: 120,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { paddingBottom: 120 },
   card: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 12,
@@ -269,11 +304,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#1E3A8A',
-    marginBottom: 12,
   },
   label: {
     fontSize: 13,
@@ -298,6 +338,9 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   methodOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
@@ -310,14 +353,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
   },
   methodText: {
+    flex: 1,
     fontSize: 13,
     color: '#475569',
     fontWeight: '500',
   },
-  methodTextActive: {
-    color: '#1D4ED8',
-    fontWeight: 'bold',
-  },
+  methodTextActive: { color: '#1D4ED8', fontWeight: 'bold' },
   summaryItemCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -335,57 +376,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     marginRight: 10,
   },
-  summaryItemInfo: {
-    flex: 1,
-  },
+  summaryItemInfo: { flex: 1 },
   summaryItemName: {
     fontSize: 13,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 2,
   },
-  summaryItemSub: {
-    fontSize: 11,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  summaryItemPrice: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#DC2626',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 12,
-  },
+  summaryItemSub: { fontSize: 11, color: '#64748B', marginBottom: 2 },
+  summaryItemPrice: { fontSize: 13, fontWeight: 'bold', color: '#DC2626' },
+  divider: { height: 1, backgroundColor: '#E2E8F0', marginVertical: 12 },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  totalLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  totalAmount: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    color: '#DC2626',
-  },
+  totalLabel: { fontSize: 14, fontWeight: 'bold', color: '#1E293B' },
+  totalAmount: { fontSize: 19, fontWeight: 'bold', color: '#DC2626' },
   placeOrderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: '#DC2626',
     paddingVertical: 14,
     borderRadius: 8,
-    alignItems: 'center',
   },
-  placeOrderBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  placeOrderBtnDisabled: { backgroundColor: '#F87171' },
+  placeOrderBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' },
 });
 
 export default CheckoutScreen;

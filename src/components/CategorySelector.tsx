@@ -7,6 +7,7 @@ import {
   View,
   Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Category, getProductImageSource } from '../data/database';
 
 interface CategorySelectorProps {
@@ -42,14 +43,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
               selectedId === undefined && styles.allIconBoxActive,
             ]}
           >
-            <Text
-              style={[
-                styles.allIconText,
-                selectedId === undefined && styles.allIconTextActive,
-              ]}
-            >
-              ALL
-            </Text>
+            <Ionicons
+              name="apps-outline"
+              size={24}
+              color={selectedId === undefined ? '#FFFFFF' : '#475569'}
+            />
           </View>
           <Text
             style={[
@@ -58,7 +56,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({
             ]}
             numberOfLines={1}
           >
-            Tất cả
+            All
           </Text>
         </TouchableOpacity>
 
@@ -137,14 +135,6 @@ const styles = StyleSheet.create({
   },
   allIconBoxActive: {
     backgroundColor: '#2563EB',
-  },
-  allIconText: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#475569',
-  },
-  allIconTextActive: {
-    color: '#FFFFFF',
   },
   categoryImage: {
     width: 52,

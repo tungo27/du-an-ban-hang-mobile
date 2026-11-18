@@ -12,6 +12,7 @@ import {
   getCurrentUser,
   subscribeAuthChanged,
   notifyAuthChanged,
+  isAdminRole,
   User,
 } from '../data/database';
 import { showAlert } from '../utils/alertHelper';
@@ -38,7 +39,7 @@ const BottomTabNavigator: React.FC = () => {
     };
   }, [syncUser]);
 
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = isAdminRole(currentUser?.role);
 
   return (
     <Tab.Navigator
@@ -89,12 +90,12 @@ const BottomTabNavigator: React.FC = () => {
           <Tab.Screen
             name="UserHomeTab"
             component={HomeScreen}
-            options={{ tabBarLabel: 'Homepage' }}
+            options={{ tabBarLabel: 'Home' }}
           />
           <Tab.Screen
             name="ProductsTab"
             component={ProductsScreen}
-            options={{ tabBarLabel: 'Sản phẩm' }}
+            options={{ tabBarLabel: 'Products' }}
           />
           <Tab.Screen
             name="SignupTab"
@@ -112,20 +113,25 @@ const BottomTabNavigator: React.FC = () => {
           <Tab.Screen
             name="UserHomeTab"
             component={HomeScreen}
-            options={{ tabBarLabel: 'Home User' }}
+            options={{ tabBarLabel: 'Store' }}
+          />
+          <Tab.Screen
+            name="ProductsTab"
+            component={ProductsScreen}
+            options={{ tabBarLabel: 'Products' }}
           />
           <Tab.Screen
             name="AdminHomeTab"
             component={AdminHomeScreen}
-            options={{ tabBarLabel: 'Home Admin' }}
+            options={{ tabBarLabel: 'Dashboard' }}
             listeners={({ navigation }) => ({
               tabPress: async (e) => {
                 const latestUser = await getCurrentUser();
-                if (!latestUser || latestUser.role !== 'admin') {
+                if (!isAdminRole(latestUser?.role)) {
                   e.preventDefault();
                   showAlert(
-                    'Truy cập bị từ chối (RBAC)',
-                    'Chỉ tài khoản Quản trị viên (Admin) mới được phép truy cập Trang chủ Quản trị!',
+                    'Access Denied (RBAC)',
+                    'Only an administrator account can open the Admin Dashboard.',
                     () => {
                       navigation.navigate('UserHomeTab');
                     }
@@ -137,7 +143,7 @@ const BottomTabNavigator: React.FC = () => {
           <Tab.Screen
             name="AccountTab"
             component={AccountScreen}
-            options={{ tabBarLabel: 'Cá nhân' }}
+            options={{ tabBarLabel: 'Account' }}
           />
         </>
       ) : (
@@ -145,17 +151,17 @@ const BottomTabNavigator: React.FC = () => {
           <Tab.Screen
             name="UserHomeTab"
             component={HomeScreen}
-            options={{ tabBarLabel: 'Homepage' }}
+            options={{ tabBarLabel: 'Home' }}
           />
           <Tab.Screen
             name="ProductsTab"
             component={ProductsScreen}
-            options={{ tabBarLabel: 'Sản phẩm' }}
+            options={{ tabBarLabel: 'Products' }}
           />
           <Tab.Screen
             name="AccountTab"
             component={AccountScreen}
-            options={{ tabBarLabel: 'Cá nhân' }}
+            options={{ tabBarLabel: 'Account' }}
           />
         </>
       )}

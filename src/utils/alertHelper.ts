@@ -13,7 +13,7 @@ export const showConfirm = (
   title: string,
   message: string,
   onConfirm: () => void,
-  confirmText: string = 'Xác nhận'
+  confirmText: string = 'Confirm'
 ) => {
   if (Platform.OS === 'web') {
     if (window.confirm(`${title}\n${message}`)) {
@@ -21,9 +21,8 @@ export const showConfirm = (
     }
   } else {
     Alert.alert(title, message, [
-      { text: 'Huỷ', style: 'cancel' },
+      { text: 'Cancel', style: 'cancel' },
       { text: confirmText, style: 'destructive', onPress: onConfirm },
     ]);
   }
 };
-

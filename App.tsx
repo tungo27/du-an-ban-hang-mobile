@@ -42,67 +42,67 @@ export default function App() {
           <Stack.Screen
             name="Products"
             component={ProductsScreen}
-            options={{ title: 'Sản phẩm - Ngô Minh Tú Store' }}
+            options={{ title: 'Products - TuTu Store' }}
           />
           <Stack.Screen
             name="ProductDetail"
             component={ProductDetailScreen}
-            options={{ title: 'Chi tiết sản phẩm' }}
+            options={{ title: 'Product Details' }}
           />
           <Stack.Screen
             name="Cart"
             component={CartScreen}
-            options={{ title: 'Giỏ hàng của bạn' }}
+            options={{ title: 'My Cart' }}
           />
           <Stack.Screen
             name="Checkout"
             component={CheckoutScreen}
-            options={{ title: 'Checkout & Đặt hàng' }}
+            options={{ title: 'Checkout' }}
           />
           <Stack.Screen
             name="OrderHistory"
             component={OrderHistoryScreen}
-            options={{ title: 'Lịch sử mua hàng' }}
+            options={{ title: 'Order History' }}
           />
           <Stack.Screen
             name="Profile"
             component={ProfileScreen}
-            options={{ title: 'Cập nhật thông tin cá nhân' }}
+            options={{ title: 'Edit Profile' }}
           />
           <Stack.Screen
             name="Login"
             component={LoginScreen}
-            options={{ title: 'Đăng nhập' }}
+            options={{ title: 'Sign In' }}
           />
           <Stack.Screen
             name="Register"
             component={RegisterScreen}
-            options={{ title: 'Đăng ký tài khoản' }}
+            options={{ title: 'Sign Up' }}
           />
           <Stack.Screen
             name="AdminHome"
             component={AdminHomeScreen}
-            options={{ title: 'Trang chủ Quản trị - Ngô Minh Tú' }}
+            options={{ title: 'Admin Dashboard' }}
           />
           <Stack.Screen
             name="AdminUsers"
             component={AdminUsersScreen}
-            options={{ title: 'Quản trị User' }}
+            options={{ title: 'User Management' }}
           />
           <Stack.Screen
             name="AdminCategories"
             component={AdminCategoriesScreen}
-            options={{ title: 'Quản trị Loại sản phẩm' }}
+            options={{ title: 'Category Management' }}
           />
           <Stack.Screen
             name="AdminProducts"
             component={AdminProductsScreen}
-            options={{ title: 'Quản trị Sản phẩm' }}
+            options={{ title: 'Product Management' }}
           />
           <Stack.Screen
             name="AdminOrders"
             component={AdminOrdersScreen}
-            options={{ title: 'Quản trị Đơn hàng' }}
+            options={{ title: 'Order Management' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

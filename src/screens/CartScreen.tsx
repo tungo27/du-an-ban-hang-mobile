@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import {
   fetchCartItems,
@@ -17,16 +18,22 @@ import {
   clearCart,
   getProductImageSource,
   getCurrentUser,
+  getRecommendedProducts,
+  addToCart,
+  isAdminRole,
   CartItem,
+  Product,
   User,
 } from '../data/database';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
+import ProductCard from '../components/ProductCard';
 import { showConfirm, showAlert } from '../utils/alertHelper';
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [recommended, setRecommended] = useState<Product[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [headerKey, setHeaderKey] = useState<number>(0);
 
@@ -37,6 +44,11 @@ const CartScreen: React.FC = () => {
     ]);
     setItems(data);
     setCurrentUser(user);
+    const recs = await getRecommendedProducts(
+      data.map((item) => item.productId),
+      8
+    );
+    setRecommended(recs);
     setHeaderKey((prev) => prev + 1);
   }, []);
 
@@ -46,17 +58,17 @@ const CartScreen: React.FC = () => {
     }, [loadCart])
   );
 
-  // Nếu là Admin thì không cho sử dụng giỏ hàng
-  if (currentUser?.role === 'admin') {
+  const isAdmin = isAdminRole(currentUser?.role);
+
+  if (isAdmin) {
     return (
       <View style={styles.container}>
-        <Header key={headerKey} subtitle="Giỏ hàng (Bị vô hiệu với Admin)" />
+        <Header key={headerKey} subtitle="Cart is disabled for administrators" />
         <View style={styles.emptyBox}>
-          <Text style={styles.emptyTitle}>
-            Tài khoản Admin không sử dụng Giỏ hàng
-          </Text>
+          <Ionicons name="lock-closed-outline" size={34} color="#94A3B8" />
+          <Text style={styles.emptyTitle}>Admin accounts cannot shop</Text>
           <Text style={styles.emptySub}>
-            Quản trị viên chỉ thực hiện quản lý User, Loại sản phẩm và Sản phẩm theo yêu cầu đề bài.
+            Administrators only manage users, categories, products and orders.
           </Text>
           <TouchableOpacity
             style={styles.shopNowBtn}
@@ -64,7 +76,8 @@ const CartScreen: React.FC = () => {
               navigation.navigate('MainTabs', { screen: 'AdminHomeTab' })
             }
           >
-            <Text style={styles.shopNowText}>VỀ TRANG CHỦ QUẢN TRỊ</Text>
+            <Ionicons name="speedometer-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.shopNowText}>Go to Dashboard</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -75,8 +88,8 @@ const CartScreen: React.FC = () => {
     const newQty = item.quantity + delta;
     if (newQty <= 0) {
       showConfirm(
-        'Xóa sản phẩm',
-        `Bạn muốn xóa "${item.productName}" khỏi giỏ hàng?`,
+        'Remove Item',
+        `Remove "${item.productName}" from your cart?`,
         async () => {
           await removeFromCart(item.productId);
           loadCart();
@@ -90,8 +103,8 @@ const CartScreen: React.FC = () => {
 
   const handleRemoveItem = (item: CartItem) => {
     showConfirm(
-      'Xóa khỏi giỏ hàng',
-      `Xác nhận xóa "${item.productName}" khỏi giỏ hàng?`,
+      'Remove from Cart',
+      `Are you sure you want to remove "${item.productName}"?`,
       async () => {
         await removeFromCart(item.productId);
         loadCart();
@@ -101,8 +114,8 @@ const CartScreen: React.FC = () => {
 
   const handleClearAll = () => {
     showConfirm(
-      'Làm trống giỏ hàng',
-      'Bạn có chắc muốn xóa toàn bộ sản phẩm trong giỏ hàng?',
+      'Clear Cart',
+      'Do you want to remove every item from your cart?',
       async () => {
         await clearCart();
         loadCart();
@@ -110,12 +123,11 @@ const CartScreen: React.FC = () => {
     );
   };
 
-  // Ràng buộc: Chỉ khi đã đăng nhập thì mới cho phép thực hiện Checkout
   const handleProceedCheckout = () => {
     if (!currentUser) {
       showConfirm(
-        'Yêu cầu Đăng nhập để Checkout',
-        'Bạn cần đăng nhập tài khoản khách hàng để tiến hành Checkout đặt hàng. Giỏ hàng hiện tại của bạn sẽ được tự động đồng bộ (sync) vào tài khoản ngay khi đăng nhập! Chuyển đến trang Đăng nhập ngay?',
+        'Sign In Required',
+        'You need to sign in before checking out. Your current cart will be synced to your account automatically after signing in. Go to Sign In now?',
         () => {
           navigation.navigate('Login', { redirectTo: 'Checkout' });
         }
@@ -123,10 +135,10 @@ const CartScreen: React.FC = () => {
       return;
     }
 
-    if (currentUser.role === 'admin') {
+    if (isAdminRole(currentUser.role)) {
       showAlert(
-        'Không thể đặt hàng',
-        'Tài khoản Quản trị viên (Admin) không thực hiện mua hàng!'
+        'Action Not Allowed',
+        'Administrator accounts cannot place orders.'
       );
       return;
     }
@@ -134,10 +146,50 @@ const CartScreen: React.FC = () => {
     navigation.navigate('Checkout');
   };
 
+  const handleAddRecommended = async (product: Product) => {
+    if (Number(product.stock ?? 0) <= 0) {
+      showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
+      return;
+    }
+    await addToCart(product, 1);
+    await loadCart();
+    showAlert(
+      'Added to Cart',
+      `"${product.name}" has been added to your cart.`
+    );
+  };
+
   const totalAmount = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const renderRecommendations = () => {
+    if (recommended.length === 0) return null;
+    return (
+      <View style={styles.recSection}>
+        <View style={styles.recHeader}>
+          <Ionicons name="sparkles-outline" size={16} color="#D97706" />
+          <Text style={styles.recTitle}>
+            {items.length === 0 ? 'RECOMMENDED FOR YOU' : 'YOU MAY ALSO LIKE'}
+          </Text>
+        </View>
+        <View style={styles.recGrid}>
+          {recommended.map((prod) => (
+            <View key={prod.id} style={styles.recCell}>
+              <ProductCard
+                product={prod}
+                onPress={() =>
+                  navigation.navigate('ProductDetail', { productId: prod.id })
+                }
+                onAddToCart={handleAddRecommended}
+              />
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -148,26 +200,29 @@ const CartScreen: React.FC = () => {
           <View>
             <Header
               key={headerKey}
-              subtitle="Xem & Cập nhật Giỏ hàng"
+              subtitle="Review your cart before checkout"
               onUserChanged={(u) => setCurrentUser(u)}
             />
             {!currentUser && items.length > 0 && (
               <View style={styles.guestSyncBanner}>
+                <Ionicons name="information-circle-outline" size={14} color="#92400E" />
                 <Text style={styles.guestSyncText}>
-                  Bạn đang dùng Giỏ hàng tạm (Guest). Khi bạn Đăng nhập, toàn bộ {items.length} mặt hàng này sẽ tự động đồng bộ vào tài khoản của bạn!
+                  You are using a temporary guest cart. Sign in and these items
+                  will be synced to your account automatically.
                 </Text>
               </View>
             )}
             <View style={styles.topBar}>
               <Text style={styles.title}>
-                GIỎ HÀNG CỦA BẠN ({items.length} mặt hàng)
+                MY CART ({items.length} {items.length === 1 ? 'item' : 'items'})
               </Text>
               {items.length > 0 && (
                 <TouchableOpacity
                   style={styles.clearAllBtn}
                   onPress={handleClearAll}
                 >
-                  <Text style={styles.clearAllText}>Xóa tất cả</Text>
+                  <Ionicons name="trash-bin-outline" size={12} color="#DC2626" />
+                  <Text style={styles.clearAllText}>Clear all</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -187,7 +242,7 @@ const CartScreen: React.FC = () => {
               </Text>
               <Text style={styles.itemPrice}>{formatPrice(item.price)}</Text>
               <Text style={styles.itemSubtotal}>
-                Thành tiền: {formatPrice(item.price * item.quantity)}
+                Subtotal: {formatPrice(item.price * item.quantity)}
               </Text>
 
               <View style={styles.controlsRow}>
@@ -196,14 +251,14 @@ const CartScreen: React.FC = () => {
                     style={styles.qtyBtn}
                     onPress={() => handleUpdateQty(item, -1)}
                   >
-                    <Text style={styles.qtyBtnText}>-</Text>
+                    <Ionicons name="remove" size={15} color="#1E293B" />
                   </TouchableOpacity>
                   <Text style={styles.qtyText}>{item.quantity}</Text>
                   <TouchableOpacity
                     style={styles.qtyBtn}
                     onPress={() => handleUpdateQty(item, 1)}
                   >
-                    <Text style={styles.qtyBtnText}>+</Text>
+                    <Ionicons name="add" size={15} color="#1E293B" />
                   </TouchableOpacity>
                 </View>
 
@@ -211,7 +266,8 @@ const CartScreen: React.FC = () => {
                   style={styles.deleteBtn}
                   onPress={() => handleRemoveItem(item)}
                 >
-                  <Text style={styles.deleteBtnText}>Xóa món</Text>
+                  <Ionicons name="trash-outline" size={12} color="#DC2626" />
+                  <Text style={styles.deleteBtnText}>Remove</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -219,11 +275,10 @@ const CartScreen: React.FC = () => {
         )}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyTitle}>
-              Giỏ hàng của bạn đang trống
-            </Text>
+            <Ionicons name="cart-outline" size={40} color="#94A3B8" />
+            <Text style={styles.emptyTitle}>Your cart is empty</Text>
             <Text style={styles.emptySub}>
-              Hãy quay lại Ngô Minh Tú Store để chọn sản phẩm yêu thích nhé!
+              Browse TuTu Store and add your favourite fashion items.
             </Text>
             <TouchableOpacity
               style={styles.shopNowBtn}
@@ -231,24 +286,27 @@ const CartScreen: React.FC = () => {
                 navigation.navigate('MainTabs', { screen: 'UserHomeTab' })
               }
             >
-              <Text style={styles.shopNowText}>TIẾP TỤC MUA SẮM</Text>
+              <Ionicons name="storefront-outline" size={14} color="#FFFFFF" />
+              <Text style={styles.shopNowText}>Continue Shopping</Text>
             </TouchableOpacity>
           </View>
         }
+        ListFooterComponent={renderRecommendations() || undefined}
       />
 
       {items.length > 0 && (
         <View style={styles.footerBar}>
           <View>
-            <Text style={styles.totalLabel}>Tổng thanh toán:</Text>
+            <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
           </View>
           <TouchableOpacity
             style={styles.checkoutBtn}
             onPress={handleProceedCheckout}
           >
+            <Ionicons name="card-outline" size={14} color="#FFFFFF" />
             <Text style={styles.checkoutBtnText}>
-              {currentUser ? 'TIẾN HÀNH CHECKOUT' : 'ĐĂNG NHẬP ĐỂ CHECKOUT'}
+              {currentUser ? 'Checkout' : 'Sign In to Checkout'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -263,9 +321,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   listContent: {
-    paddingBottom: 100,
+    paddingBottom: 110,
   },
   guestSyncBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
     backgroundColor: '#FEF3C7',
     marginHorizontal: 12,
     marginTop: 10,
@@ -275,6 +336,7 @@ const styles = StyleSheet.create({
     borderColor: '#F59E0B',
   },
   guestSyncText: {
+    flex: 1,
     fontSize: 12,
     color: '#92400E',
     fontWeight: '600',
@@ -293,6 +355,9 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   clearAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#FEE2E2',
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -355,14 +420,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   qtyBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     backgroundColor: '#F1F5F9',
-  },
-  qtyBtnText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1E293B',
   },
   qtyText: {
     paddingHorizontal: 12,
@@ -371,6 +431,9 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: '#FEF2F2',
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -384,23 +447,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   emptyBox: {
-    padding: 36,
+    padding: 30,
     alignItems: 'center',
+    gap: 8,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#334155',
-    marginBottom: 6,
     textAlign: 'center',
   },
   emptySub: {
     fontSize: 13,
     color: '#64748B',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   shopNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#2563EB',
     paddingHorizontal: 18,
     paddingVertical: 11,
@@ -435,6 +501,9 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
   checkoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: '#16A34A',
     paddingHorizontal: 18,
     paddingVertical: 12,
@@ -444,6 +513,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: 'bold',
     fontSize: 12,
+  },
+  recSection: {
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  recHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    marginBottom: 4,
+  },
+  recTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  recGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 6,
+  },
+  recCell: {
+    width: '50%',
   },
 });
 

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Ngô Minh Tú Store - btvnBuoi14",
-    "slug": "ngo-minh-tu-store-btvn14",
+    "name": "TuTu Store",
+    "slug": "tutu-store",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

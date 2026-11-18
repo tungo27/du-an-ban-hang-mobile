@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import { registerUser } from '../data/database';
 import Header from '../components/Header';
@@ -27,15 +28,10 @@ const RegisterScreen: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
 
   const handleRegister = async () => {
-    if (
-      !fullName.trim() ||
-      !username.trim() ||
-      !email.trim() ||
-      !password.trim()
-    ) {
+    if (!fullName.trim() || !username.trim() || !email.trim() || !password.trim()) {
       showAlert(
-        'Thiếu thông tin',
-        'Vui lòng nhập đầy đủ Họ tên, Username, Email và Mật khẩu!'
+        'Missing Information',
+        'Please fill in your full name, username, email and password.'
       );
       return;
     }
@@ -43,14 +39,14 @@ const RegisterScreen: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
       showAlert(
-        'Email không hợp lệ',
-        'Vui lòng nhập đúng định dạng Email (ví dụ: ngominhtu@gmail.com)!'
+        'Invalid Email',
+        'Please enter a valid email address (e.g. ngominhtu@gmail.com).'
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      showAlert('Lỗi mật khẩu', 'Mật khẩu xác nhận không khớp!');
+      showAlert('Password Mismatch', 'The confirmation password does not match.');
       return;
     }
 
@@ -60,15 +56,15 @@ const RegisterScreen: React.FC = () => {
       fullName: fullName.trim(),
       email: email.trim(),
       phone: phone.trim() || '0905123456',
-      address: address.trim() || 'Đà Nẵng - Ngô Minh Tú Store',
+      address: address.trim() || 'Da Nang - TuTu Store',
     });
 
     if (!res.success) {
-      showAlert('Đăng ký thất bại', res.message);
+      showAlert('Registration Failed', res.message);
       return;
     }
 
-    showAlert('Đăng ký thành công', res.message, () => {
+    showAlert('Registration Successful', res.message, () => {
       setFullName('');
       setUsername('');
       setEmail('');
@@ -91,27 +87,30 @@ const RegisterScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Header subtitle="Đăng ký thành viên Ngô Minh Tú Store" />
+        <Header subtitle="Create your TuTu Store account" />
 
         <View style={styles.formCard}>
-          <Text style={styles.title}>ĐĂNG KÝ TÀI KHOẢN MỚI</Text>
+          <View style={styles.titleRow}>
+            <Ionicons name="person-add-outline" size={20} color="#1E3A8A" />
+            <Text style={styles.title}>SIGN UP</Text>
+          </View>
           <Text style={styles.subtitle}>
-            Tạo tài khoản khách hàng tại Ngô Minh Tú Store để mua sắm và theo dõi đơn hàng.
+            Create a customer account to shop and track your orders at TuTu Store.
           </Text>
 
-          <Text style={styles.label}>Họ và tên (*)</Text>
+          <Text style={styles.label}>Full name (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Ví dụ: Ngô Minh Tú"
+            placeholder="e.g. Ngo Minh Tu"
             placeholderTextColor="#94A3B8"
             value={fullName}
             onChangeText={setFullName}
           />
 
-          <Text style={styles.label}>Tên đăng nhập (Username) (*)</Text>
+          <Text style={styles.label}>Username (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: ngominh_tu_02"
+            placeholder="e.g. ngominh_tu_02"
             placeholderTextColor="#94A3B8"
             autoCapitalize="none"
             value={username}
@@ -121,7 +120,7 @@ const RegisterScreen: React.FC = () => {
           <Text style={styles.label}>Email (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: ngominhtu@gmail.com"
+            placeholder="e.g. ngominhtu@gmail.com"
             placeholderTextColor="#94A3B8"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -129,39 +128,39 @@ const RegisterScreen: React.FC = () => {
             onChangeText={setEmail}
           />
 
-          <Text style={styles.label}>Số điện thoại</Text>
+          <Text style={styles.label}>Phone number</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: 0988123456 (Ngô Minh Tú)"
+            placeholder="e.g. 0988123456 (Ngo Minh Tu)"
             placeholderTextColor="#94A3B8"
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
 
-          <Text style={styles.label}>Địa chỉ nhận hàng</Text>
+          <Text style={styles.label}>Delivery address</Text>
           <TextInput
             style={styles.input}
-            placeholder="vd: Ngô Minh Tú - Hải Châu, Đà Nẵng"
+            placeholder="e.g. Ngo Minh Tu - Hai Chau, Da Nang"
             placeholderTextColor="#94A3B8"
             value={address}
             onChangeText={setAddress}
           />
 
-          <Text style={styles.label}>Mật khẩu (*)</Text>
+          <Text style={styles.label}>Password (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nhập mật khẩu cho tài khoản Ngô Minh Tú"
+            placeholder="Create a password for Ngo Minh Tu"
             placeholderTextColor="#94A3B8"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
 
-          <Text style={styles.label}>Xác nhận mật khẩu (*)</Text>
+          <Text style={styles.label}>Confirm password (*)</Text>
           <TextInput
             style={styles.input}
-            placeholder="Nhập lại mật khẩu"
+            placeholder="Re-enter your password"
             placeholderTextColor="#94A3B8"
             secureTextEntry
             value={confirmPassword}
@@ -169,15 +168,16 @@ const RegisterScreen: React.FC = () => {
           />
 
           <TouchableOpacity style={styles.registerBtn} onPress={handleRegister}>
-            <Text style={styles.registerBtnText}>HOÀN TẤT ĐĂNG KÝ</Text>
+            <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
+            <Text style={styles.registerBtnText}>CREATE ACCOUNT</Text>
           </TouchableOpacity>
 
           <View style={styles.switchRow}>
-            <Text style={styles.switchText}>Đã có tài khoản?</Text>
+            <Text style={styles.switchText}>Already have an account?</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('MainTabs', { screen: 'LoginTab' })}
             >
-              <Text style={styles.switchLink}>Đăng nhập tại đây</Text>
+              <Text style={styles.switchLink}>Sign in here</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -187,13 +187,8 @@ const RegisterScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  scrollContent: {
-    paddingBottom: 130,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { paddingBottom: 130 },
   formCard: {
     backgroundColor: '#FFFFFF',
     margin: 14,
@@ -202,23 +197,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
-    marginBottom: 6,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { fontSize: 18, fontWeight: 'bold', color: '#1E3A8A' },
+  subtitle: { fontSize: 12, color: '#64748B', marginTop: 6, marginBottom: 14 },
+  label: { fontSize: 13, fontWeight: '600', color: '#334155', marginBottom: 6 },
   input: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -231,32 +213,24 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   registerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     backgroundColor: '#16A34A',
     paddingVertical: 13,
     borderRadius: 8,
-    alignItems: 'center',
     marginTop: 6,
   },
-  registerBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  registerBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: 'bold' },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 16,
     gap: 6,
   },
-  switchText: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  switchLink: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#2563EB',
-  },
+  switchText: { fontSize: 13, color: '#64748B' },
+  switchLink: { fontSize: 13, fontWeight: 'bold', color: '#2563EB' },
 });
 
 export default RegisterScreen;

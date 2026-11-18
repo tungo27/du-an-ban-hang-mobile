@@ -6,15 +6,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  ScrollView,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import {
   fetchOrders,
   updateOrderStatus,
   getCurrentUser,
   getProductImageSource,
+  isAdminRole,
+  ORDER_STATUSES,
   Order,
   User,
 } from '../data/database';
@@ -22,28 +26,37 @@ import Header from '../components/Header';
 import { formatPrice } from '../utils/formatPrice';
 import { showAlert, showConfirm } from '../utils/alertHelper';
 
-const ORDER_STATUS_LIST = [
-  'Chờ xác nhận',
-  'Đã xác nhận',
-  'Đang giao hàng',
-  'Đã giao thành công',
-  'Đã hủy',
-];
+type FilterValue = 'All' | (typeof ORDER_STATUSES)[number];
 
-const getStatusBadgeColor = (status: string): string => {
-  const s = status.toLowerCase();
-  if (s.includes('chờ')) return '#D97706';
-  if (s.includes('hủy')) return '#DC2626';
-  if (s.includes('thành công')) return '#16A34A';
-  if (s.includes('giao')) return '#7C3AED';
-  return '#2563EB';
+const getStatusMeta = (status: string) => {
+  switch (status) {
+    case 'Pending':
+      return { color: '#D97706', bg: '#FEF3C7', icon: 'time-outline' as const };
+    case 'Confirmed':
+      return { color: '#2563EB', bg: '#DBEAFE', icon: 'checkmark-circle-outline' as const };
+    case 'Shipping':
+      return { color: '#7C3AED', bg: '#EDE9FE', icon: 'bicycle-outline' as const };
+    case 'Delivered':
+      return { color: '#059669', bg: '#DCFCE7', icon: 'cube-outline' as const };
+    case 'Cancelled':
+      return { color: '#DC2626', bg: '#FEE2E2', icon: 'close-circle-outline' as const };
+    default:
+      return { color: '#475569', bg: '#F1F5F9', icon: 'ellipse-outline' as const };
+  }
+};
+
+const STATUS_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Pending: 'time-outline',
+  Confirmed: 'checkmark-circle-outline',
+  Shipping: 'bicycle-outline',
+  Delivered: 'cube-outline',
+  Cancelled: 'close-circle-outline',
 };
 
 const AdminOrdersScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('Tất cả');
-  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<FilterValue>('All');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [headerKey, setHeaderKey] = useState<number>(0);
 
@@ -52,10 +65,10 @@ const AdminOrdersScreen: React.FC = () => {
     setCurrentUser(curr);
     setHeaderKey((prev) => prev + 1);
 
-    if (!curr || curr.role !== 'admin') {
+    if (!isAdminRole(curr?.role)) {
       showAlert(
-        'Truy cập bị từ chối (RBAC)',
-        'Chỉ Quản trị viên (Admin) mới có quyền Quản trị đơn hàng!',
+        'Access Denied (RBAC)',
+        'Only administrators can manage customer orders.',
         () => {
           navigation.navigate('MainTabs', { screen: 'UserHomeTab' });
         }
@@ -63,8 +76,7 @@ const AdminOrdersScreen: React.FC = () => {
       return;
     }
 
-    const allOrders = await fetchOrders();
-    setOrders(allOrders);
+    setOrders(await fetchOrders());
   }, [navigation]);
 
   useFocusEffect(
@@ -77,37 +89,37 @@ const AdminOrdersScreen: React.FC = () => {
     if (order.status === nextStatus) return;
 
     showConfirm(
-      'Cập nhật tình trạng đơn hàng',
-      `Bạn muốn đổi tình trạng đơn hàng #${order.id} của khách hàng "${order.customerName}" từ "${order.status}" sang "${nextStatus}"?`,
+      'Update Order Status',
+      `Change order #${order.id} of "${order.customerName}" from "${order.status}" to "${nextStatus}"?`,
       async () => {
         const ok = await updateOrderStatus(order.id, nextStatus);
         if (ok) {
           await loadOrdersData();
           showAlert(
-            'Cập nhật thành công',
-            `Đơn hàng #${order.id} đã được chuyển sang trạng thái: "${nextStatus}".`
+            'Status Updated',
+            `Order #${order.id} is now "${nextStatus}".`
           );
         } else {
-          showAlert('Lỗi', 'Không thể cập nhật tình trạng đơn hàng.');
+          showAlert('Update Failed', 'Could not update the order status.');
         }
       }
     );
   };
 
-  if (!currentUser || currentUser.role !== 'admin') {
+  if (!isAdminRole(currentUser?.role)) {
     return (
       <View style={styles.container}>
-        <Header key={headerKey} subtitle="Bảo mật RBAC - Quản trị Đơn hàng" />
+        <Header key={headerKey} subtitle="RBAC Security - Order Management" />
       </View>
     );
   }
 
   const filteredOrders =
-    selectedStatusFilter === 'Tất cả'
+    selectedStatusFilter === 'All'
       ? orders
-      : orders.filter((o) =>
-          o.status.toLowerCase().includes(selectedStatusFilter.toLowerCase())
-        );
+      : orders.filter((o) => o.status === selectedStatusFilter);
+
+  const filterOptions: FilterValue[] = ['All', ...ORDER_STATUSES];
 
   return (
     <View style={styles.container}>
@@ -117,88 +129,91 @@ const AdminOrdersScreen: React.FC = () => {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View>
-            <Header
-              key={headerKey}
-              subtitle="Quản trị Đơn hàng (Xem & Cập nhật tình trạng)"
-            />
+            <Header key={headerKey} subtitle="Order Management" />
 
             <View style={styles.topSummaryCard}>
-              <Text style={styles.title}>
-                QUẢN TRỊ ĐƠN HÀNG ({filteredOrders.length} / {orders.length} ĐƠN)
-              </Text>
+              <View style={styles.titleRow}>
+                <Ionicons name="receipt-outline" size={18} color="#1E3A8A" />
+                <Text style={styles.title}>
+                  ALL ORDERS ({filteredOrders.length} / {orders.length})
+                </Text>
+              </View>
               <Text style={styles.subTitle}>
-                Admin xem danh sách tất cả đơn hàng của khách hàng và cập nhật tình trạng xử lý đơn hàng theo thời gian thực.
+                Review every customer order and update its processing status.
               </Text>
 
-              <View style={styles.filterRow}>
-                {['Tất cả', ...ORDER_STATUS_LIST].map((st) => {
-                  const active = selectedStatusFilter === st;
-                  return (
-                    <TouchableOpacity
-                      key={st}
-                      style={[
-                        styles.filterChip,
-                        active && styles.filterChipActive,
-                      ]}
-                      onPress={() => setSelectedStatusFilter(st)}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          active && styles.filterChipTextActive,
-                        ]}
+              <View style={styles.filterWrapper}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.filterRow}
+                >
+                  {filterOptions.map((st) => {
+                    const active = selectedStatusFilter === st;
+                    const icon =
+                      st === 'All' ? 'apps-outline' : STATUS_ICONS[st] || 'ellipse-outline';
+                    return (
+                      <TouchableOpacity
+                        key={st}
+                        style={[styles.filterChip, active && styles.filterChipActive]}
+                        onPress={() => setSelectedStatusFilter(st)}
                       >
-                        {st}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                        <Ionicons
+                          name={icon}
+                          size={12}
+                          color={active ? '#FFFFFF' : '#475569'}
+                        />
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            active && styles.filterChipTextActive,
+                          ]}
+                        >
+                          {st}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
               </View>
             </View>
           </View>
         }
         renderItem={({ item }) => {
-          const isExpanded = expandedOrderId === item.id;
-          const badgeColor = getStatusBadgeColor(item.status);
-
+          const meta = getStatusMeta(item.status);
           return (
             <View style={styles.orderCard}>
               <View style={styles.orderHeaderRow}>
                 <View style={styles.orderTitleBox}>
-                  <Text style={styles.orderIdText}>ĐƠN HÀNG #{item.id}</Text>
-                  <Text style={styles.orderDateText}>
-                    Ngày đặt: {item.createdAt}
-                  </Text>
+                  <Text style={styles.orderIdText}>ORDER #{item.id}</Text>
+                  <Text style={styles.orderDateText}>Placed: {item.createdAt}</Text>
                 </View>
-                <View
-                  style={[styles.statusBadge, { backgroundColor: badgeColor }]}
-                >
-                  <Text style={styles.statusBadgeText}>{item.status}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: meta.bg }]}>
+                  <Ionicons name={meta.icon} size={12} color={meta.color} />
+                  <Text style={[styles.statusBadgeText, { color: meta.color }]}>
+                    {item.status}
+                  </Text>
                 </View>
               </View>
 
               <View style={styles.customerBox}>
                 <Text style={styles.customerName}>
-                  Khách hàng: {item.customerName} (User ID: #{item.userId})
+                  Customer: {item.customerName} (User ID #{item.userId})
                 </Text>
-                <Text style={styles.customerInfo}>SĐT: {item.phone}</Text>
-                <Text style={styles.customerInfo}>
-                  Địa chỉ giao: {item.address}
-                </Text>
-                <Text style={styles.customerInfo}>
-                  Thanh toán: {item.paymentMethod}
-                </Text>
+                <Text style={styles.customerInfo}>Phone: {item.phone}</Text>
+                <Text style={styles.customerInfo}>Address: {item.address}</Text>
+                <Text style={styles.customerInfo}>Payment: {item.paymentMethod}</Text>
                 {item.note ? (
-                  <Text style={styles.customerInfo}>Ghi chú: {item.note}</Text>
+                  <Text style={styles.customerInfo}>Note: {item.note}</Text>
                 ) : null}
               </View>
 
               <View style={styles.itemsContainer}>
                 <Text style={styles.itemsSectionLabel}>
-                  HÌNH ẢNH & DANH SÁCH SẢN PHẨM TRONG ĐƠN ({item.items.length} SP):
+                  ITEMS IN THIS ORDER ({item.items.length})
                 </Text>
                 {item.items.map((prod, idx) => (
-                  <View key={idx} style={styles.itemRow}>
+                  <View key={`${prod.productId}-${idx}`} style={styles.itemRow}>
                     <Image
                       source={getProductImageSource(prod.img)}
                       style={styles.itemThumb}
@@ -209,10 +224,10 @@ const AdminOrdersScreen: React.FC = () => {
                         {prod.productName}
                       </Text>
                       <Text style={styles.itemSub}>
-                        Đơn giá: {formatPrice(prod.price)} | Số lượng: x{prod.quantity}
+                        {formatPrice(prod.price)} x{prod.quantity}
                       </Text>
                       <Text style={styles.itemSubtotalText}>
-                        Thành tiền: {formatPrice(prod.price * prod.quantity)}
+                        {formatPrice(prod.price * prod.quantity)}
                       </Text>
                     </View>
                   </View>
@@ -221,32 +236,36 @@ const AdminOrdersScreen: React.FC = () => {
 
               <View style={styles.totalRow}>
                 <Text style={styles.itemCountText}>
-                  Tổng số lượng: {item.items.reduce((s, i) => s + i.quantity, 0)} sản phẩm
+                  Quantity: {item.items.reduce((s, i) => s + i.quantity, 0)}
                 </Text>
                 <Text style={styles.totalPriceText}>
-                  Tổng tiền: {formatPrice(item.totalAmount)}
+                  Total: {formatPrice(item.totalAmount)}
                 </Text>
               </View>
 
               <View style={styles.updateSection}>
-                <Text style={styles.updateLabel}>
-                  CẬP NHẬT TÌNH TRẠNG ĐƠN HÀNG:
-                </Text>
+                <Text style={styles.updateLabel}>UPDATE STATUS:</Text>
                 <View style={styles.statusBtnGroup}>
-                  {ORDER_STATUS_LIST.map((st) => {
+                  {ORDER_STATUSES.map((st) => {
                     const isCurrent = item.status === st;
+                    const stMeta = getStatusMeta(st);
                     return (
                       <TouchableOpacity
                         key={st}
                         style={[
                           styles.statusOptionBtn,
                           isCurrent && {
-                            backgroundColor: getStatusBadgeColor(st),
-                            borderColor: getStatusBadgeColor(st),
+                            backgroundColor: stMeta.color,
+                            borderColor: stMeta.color,
                           },
                         ]}
                         onPress={() => handleChangeOrderStatus(item, st)}
                       >
+                        <Ionicons
+                          name={STATUS_ICONS[st] || 'ellipse-outline'}
+                          size={11}
+                          color={isCurrent ? '#FFFFFF' : '#475569'}
+                        />
                         <Text
                           style={[
                             styles.statusOptionText,
@@ -265,8 +284,9 @@ const AdminOrdersScreen: React.FC = () => {
         }}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
+            <Ionicons name="receipt-outline" size={36} color="#94A3B8" />
             <Text style={styles.emptyText}>
-              Chưa có đơn hàng nào khớp trạng thái đang lọc.
+              No orders match the selected status.
             </Text>
           </View>
         }
@@ -276,13 +296,8 @@ const AdminOrdersScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  listContent: {
-    paddingBottom: 32,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  listContent: { paddingBottom: 32 },
   topSummaryCard: {
     backgroundColor: '#FFFFFF',
     margin: 12,
@@ -291,44 +306,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  title: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  subTitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
-    lineHeight: 18,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 10,
-  },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { fontSize: 15, fontWeight: 'bold', color: '#1E293B' },
+  subTitle: { fontSize: 12, color: '#64748B', marginTop: 4, lineHeight: 18 },
+  filterWrapper: { marginTop: 10 },
+  filterRow: { gap: 6, paddingRight: 4 },
   filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
-  filterChipActive: {
-    backgroundColor: '#1E3A8A',
-    borderColor: '#1E3A8A',
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#334155',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
+  filterChipActive: { backgroundColor: '#1E3A8A', borderColor: '#1E3A8A' },
+  filterChipText: { fontSize: 11, fontWeight: '600', color: '#334155' },
+  filterChipTextActive: { color: '#FFFFFF', fontWeight: 'bold' },
   orderCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 12,
@@ -344,30 +340,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 8,
   },
-  orderTitleBox: {
-    flex: 1,
-    marginRight: 8,
-  },
-  orderIdText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-  },
-  orderDateText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
+  orderTitleBox: { flex: 1, marginRight: 8 },
+  orderIdText: { fontSize: 15, fontWeight: 'bold', color: '#1E3A8A' },
+  orderDateText: { fontSize: 12, color: '#64748B', marginTop: 2 },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
-  statusBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
+  statusBadgeText: { fontSize: 11, fontWeight: 'bold' },
   customerBox: {
     backgroundColor: '#F8FAFC',
     padding: 10,
@@ -382,41 +366,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginBottom: 3,
   },
-  customerInfo: {
-    fontSize: 12,
-    color: '#475569',
-    marginTop: 2,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  itemCountText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  totalPriceText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#DC2626',
-  },
-  detailToggleBtn: {
-    backgroundColor: '#EFF6FF',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    marginBottom: 10,
-  },
-  detailToggleText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-  },
+  customerInfo: { fontSize: 12, color: '#475569', marginTop: 2 },
   itemsContainer: {
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
@@ -446,25 +396,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     marginRight: 10,
   },
-  itemInfoCol: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  itemSub: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2,
-  },
+  itemInfoCol: { flex: 1 },
+  itemName: { fontSize: 13, fontWeight: 'bold', color: '#1E293B' },
+  itemSub: { fontSize: 12, color: '#64748B', marginTop: 2 },
   itemSubtotalText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#DC2626',
     marginTop: 2,
   },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  itemCountText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+  totalPriceText: { fontSize: 15, fontWeight: 'bold', color: '#DC2626' },
   updateSection: {
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
@@ -476,12 +424,11 @@ const styles = StyleSheet.create({
     color: '#475569',
     marginBottom: 8,
   },
-  statusBtnGroup: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
+  statusBtnGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   statusOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -489,22 +436,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
-  statusOptionText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#334155',
-  },
-  statusOptionTextActive: {
-    color: '#FFFFFF',
-  },
-  emptyBox: {
-    padding: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#64748B',
-  },
+  statusOptionText: { fontSize: 11, fontWeight: 'bold', color: '#334155' },
+  statusOptionTextActive: { color: '#FFFFFF' },
+  emptyBox: { padding: 32, alignItems: 'center' },
+  emptyText: { fontSize: 13, color: '#64748B', marginTop: 8 },
 });
 
 export default AdminOrdersScreen;

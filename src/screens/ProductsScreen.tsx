@@ -8,8 +8,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
-  ScrollView,
 } from 'react-native';
 import {
   useNavigation,
@@ -18,20 +16,18 @@ import {
   useFocusEffect,
 } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../types/navigation';
 import {
   fetchCategories,
   searchAndFilterProducts,
-  fetchOrders,
-  getProductImageSource,
   addToCart,
   getCurrentUser,
+  isAdminRole,
   Category,
   Product,
-  Order,
   User,
 } from '../data/database';
-import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
 import CategorySelector from '../components/CategorySelector';
 import ProductCard from '../components/ProductCard';
@@ -46,7 +42,6 @@ const ProductsScreen: React.FC = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(
     route.params?.categoryId
@@ -70,16 +65,14 @@ const ProductsScreen: React.FC = () => {
       minP?: number,
       maxP?: number
     ) => {
-      const [cats, prods, user, allOrders] = await Promise.all([
+      const [cats, prods, user] = await Promise.all([
         fetchCategories(),
         searchAndFilterProducts(kw, catId, minP, maxP),
         getCurrentUser(),
-        fetchOrders(),
       ]);
       setCategories(cats);
       setProducts(prods);
       setCurrentUser(user);
-      setRecentOrders(allOrders.slice(0, 5));
     },
     []
   );
@@ -173,31 +166,34 @@ const ProductsScreen: React.FC = () => {
     setProducts(prods);
   };
 
+  const isAdmin = isAdminRole(currentUser?.role);
+
   const handleAddToCart = async (product: Product) => {
-    if (currentUser?.role === 'admin') {
+    if (isAdmin) return;
+    if (Number(product.stock ?? 0) <= 0) {
+      showAlert('Out of Stock', `"${product.name}" is currently out of stock.`);
       return;
     }
     await addToCart(product, 1);
     setHeaderKey((prev) => prev + 1);
     showAlert(
-      'Đã thêm vào giỏ',
-      `Đã thêm "${product.name}" vào giỏ hàng Ngô Minh Tú Store!`
+      'Added to Cart',
+      `"${product.name}" has been added to your TuTu Store cart.`
     );
   };
-
-  const isAdmin = currentUser?.role === 'admin';
 
   const renderHeader = () => (
     <View>
       <Header
         key={headerKey}
-        subtitle="Tìm kiếm theo danh mục & Lọc theo khoảng giá"
+        subtitle="Browse products & filter by price"
         onUserChanged={(u) => setCurrentUser(u)}
       />
       <View style={styles.searchBar}>
+        <Ionicons name="search" size={17} color="#64748B" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm theo tên SP hoặc danh mục tại Ngô Minh Tú Store..."
+          placeholder="Search products or categories at TuTu Store..."
           placeholderTextColor="#94A3B8"
           value={keyword}
           onChangeText={handleKeywordChange}
@@ -207,13 +203,16 @@ const ProductsScreen: React.FC = () => {
             style={styles.clearBtn}
             onPress={() => handleKeywordChange('')}
           >
-            <Text style={styles.clearBtnText}>Xóa</Text>
+            <Ionicons name="close-circle" size={18} color="#64748B" />
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.catHeaderRow}>
-        <Text style={styles.catHeaderTitle}>TÌM KIẾM THEO DANH MỤC</Text>
+        <View style={styles.titleRow}>
+          <Ionicons name="grid-outline" size={14} color="#1E293B" />
+          <Text style={styles.catHeaderTitle}>SHOP BY CATEGORY</Text>
+        </View>
       </View>
 
       <CategorySelector
@@ -222,94 +221,54 @@ const ProductsScreen: React.FC = () => {
         onSelect={handleCategorySelect}
       />
 
-      {/* BỘ LỌC THEO KHOẢNG GIÁ */}
       <View style={styles.priceFilterCard}>
         <View style={styles.priceFilterHeader}>
-          <Text style={styles.priceFilterTitle}>LỌC SẢN PHẨM THEO KHOẢNG GIÁ</Text>
+          <View style={styles.titleRow}>
+            <Ionicons name="options-outline" size={14} color="#1E293B" />
+            <Text style={styles.priceFilterTitle}>PRICE RANGE</Text>
+          </View>
           {(keyword !== '' ||
             selectedCategoryId !== undefined ||
             minPriceText !== '' ||
             maxPriceText !== '') && (
-            <TouchableOpacity onPress={handleResetFilters}>
-              <Text style={styles.resetFilterText}>Đặt lại bộ lọc</Text>
+            <TouchableOpacity style={styles.resetBtn} onPress={handleResetFilters}>
+              <Ionicons name="refresh-outline" size={12} color="#DC2626" />
+              <Text style={styles.resetFilterText}>Reset</Text>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={styles.pricePresetRow}>
-          <TouchableOpacity
-            style={[
-              styles.priceChip,
-              pricePreset === 'all' && styles.priceChipActive,
-            ]}
-            onPress={() => handleSelectPricePreset('all')}
-          >
-            <Text
+          {[
+            { key: 'all' as PricePreset, label: 'All prices' },
+            { key: 'under200' as PricePreset, label: 'Under 200k' },
+            { key: '200to400' as PricePreset, label: '200k - 400k' },
+            { key: 'above400' as PricePreset, label: 'Above 400k' },
+          ].map((chip) => (
+            <TouchableOpacity
+              key={chip.key}
               style={[
-                styles.priceChipText,
-                pricePreset === 'all' && styles.priceChipTextActive,
+                styles.priceChip,
+                pricePreset === chip.key && styles.priceChipActive,
               ]}
+              onPress={() => handleSelectPricePreset(chip.key)}
             >
-              Tất cả giá
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.priceChip,
-              pricePreset === 'under200' && styles.priceChipActive,
-            ]}
-            onPress={() => handleSelectPricePreset('under200')}
-          >
-            <Text
-              style={[
-                styles.priceChipText,
-                pricePreset === 'under200' && styles.priceChipTextActive,
-              ]}
-            >
-              Dưới 200k
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.priceChip,
-              pricePreset === '200to400' && styles.priceChipActive,
-            ]}
-            onPress={() => handleSelectPricePreset('200to400')}
-          >
-            <Text
-              style={[
-                styles.priceChipText,
-                pricePreset === '200to400' && styles.priceChipTextActive,
-              ]}
-            >
-              200k - 400k
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.priceChip,
-              pricePreset === 'above400' && styles.priceChipActive,
-            ]}
-            onPress={() => handleSelectPricePreset('above400')}
-          >
-            <Text
-              style={[
-                styles.priceChipText,
-                pricePreset === 'above400' && styles.priceChipTextActive,
-              ]}
-            >
-              Trên 400k
-            </Text>
-          </TouchableOpacity>
+              <Text
+                style={[
+                  styles.priceChipText,
+                  pricePreset === chip.key && styles.priceChipTextActive,
+                ]}
+              >
+                {chip.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <View style={styles.customPriceRow}>
           <TextInput
             style={styles.priceInput}
-            placeholder="Giá từ (vd: 150000)"
+            placeholder="From (e.g. 150000)"
             placeholderTextColor="#94A3B8"
             keyboardType="numeric"
             value={minPriceText}
@@ -318,7 +277,7 @@ const ProductsScreen: React.FC = () => {
           <Text style={styles.priceDash}>-</Text>
           <TextInput
             style={styles.priceInput}
-            placeholder="Đến giá (vd: 500000)"
+            placeholder="To (e.g. 500000)"
             placeholderTextColor="#94A3B8"
             keyboardType="numeric"
             value={maxPriceText}
@@ -328,76 +287,11 @@ const ProductsScreen: React.FC = () => {
       </View>
 
       <View style={styles.resultRow}>
+        <Ionicons name="cube-outline" size={14} color="#334155" />
         <Text style={styles.resultText}>
-          Hiển thị {products.length} sản phẩm Áo Quần & Giày Dép
+          Showing {products.length} fashion products
         </Text>
       </View>
-
-      {/* KHỐI HÌNH ẢNH ĐƠN HÀNG TRÊN TRANG SẢN PHẨM (GIỐNG SHOPEE) */}
-      {recentOrders.length > 0 && (
-        <View style={styles.shopeeOrderSection}>
-          <View style={styles.shopeeOrderHeader}>
-            <View style={styles.shopeeTitleRow}>
-              <View style={styles.shopeeMallTag}>
-                <Text style={styles.shopeeMallTagText}>Shopee Style</Text>
-              </View>
-              <Text style={styles.shopeeOrderTitle}>
-                HÌNH ẢNH ĐƠN HÀNG ĐÃ ĐẶT ({recentOrders.length})
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate(isAdmin ? 'AdminOrders' : 'OrderHistory')
-              }
-            >
-              <Text style={styles.shopeeSeeOrdersText}>
-                {isAdmin ? 'Quản trị đơn >' : 'Xem Đơn mua >'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.shopeeOrderScroll}
-          >
-            {recentOrders.map((ord) => {
-              const firstItem = (ord.items || [])[0];
-              return (
-                <TouchableOpacity
-                  key={ord.id}
-                  style={styles.shopeeOrderCard}
-                  activeOpacity={0.85}
-                  onPress={() =>
-                    navigation.navigate(isAdmin ? 'AdminOrders' : 'OrderHistory')
-                  }
-                >
-                  <Image
-                    source={getProductImageSource(firstItem?.img)}
-                    style={styles.shopeeOrderThumb}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.shopeeOrderInfo}>
-                    <View style={styles.shopeeOrderTopLine}>
-                      <Text style={styles.shopeeOrderCode}>Đơn #{ord.id}</Text>
-                      <Text style={styles.shopeeOrderStatus}>{ord.status}</Text>
-                    </View>
-                    <Text style={styles.shopeeOrderProdName} numberOfLines={1}>
-                      {firstItem ? firstItem.productName : 'Đơn hàng thời trang'}
-                    </Text>
-                    <Text style={styles.shopeeOrderMeta}>
-                      {(ord.items || []).length} mặt hàng • Tổng:{' '}
-                      <Text style={styles.shopeeOrderTotal}>
-                        {formatPrice(ord.totalAmount)}
-                      </Text>
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      )}
     </View>
   );
 
@@ -417,16 +311,15 @@ const ProductsScreen: React.FC = () => {
           <ProductCard
             product={item}
             onPress={() =>
-              navigation.navigate('ProductDetail', { product: item })
+              navigation.navigate('ProductDetail', { productId: item.id })
             }
             onAddToCart={isAdmin ? undefined : handleAddToCart}
           />
         )}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>
-              Không có sản phẩm nào khớp bộ lọc.
-            </Text>
+            <Ionicons name="search-outline" size={30} color="#94A3B8" />
+            <Text style={styles.emptyText}>No products match your filters.</Text>
           </View>
         }
       />
@@ -445,6 +338,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     backgroundColor: '#FFFFFF',
     marginHorizontal: 12,
     marginTop: 10,
@@ -460,20 +354,17 @@ const styles = StyleSheet.create({
     color: '#1E293B',
   },
   clearBtn: {
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  clearBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#475569',
+    padding: 2,
   },
   catHeaderRow: {
     paddingHorizontal: 14,
     marginTop: 10,
     marginBottom: 4,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   catHeaderTitle: {
     fontSize: 12,
@@ -499,6 +390,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     color: '#1E293B',
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
   },
   resetFilterText: {
     fontSize: 12,
@@ -554,6 +450,9 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
@@ -562,104 +461,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#334155',
   },
-  shopeeOrderSection: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#FED7AA',
-  },
-  shopeeOrderHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  shopeeTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  shopeeMallTag: {
-    backgroundColor: '#EE4D2D',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  shopeeMallTagText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  shopeeOrderTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1E293B',
-  },
-  shopeeSeeOrdersText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#EE4D2D',
-  },
-  shopeeOrderScroll: {
-    gap: 10,
-    paddingRight: 4,
-  },
-  shopeeOrderCard: {
-    width: 265,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 8,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#FDBA74',
-  },
-  shopeeOrderThumb: {
-    width: 58,
-    height: 58,
-    borderRadius: 8,
-    backgroundColor: '#E2E8F0',
-    marginRight: 10,
-  },
-  shopeeOrderInfo: {
-    flex: 1,
-  },
-  shopeeOrderTopLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  shopeeOrderCode: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-  },
-  shopeeOrderStatus: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#16A34A',
-  },
-  shopeeOrderProdName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
-  },
-  shopeeOrderMeta: {
-    fontSize: 11,
-    color: '#475569',
-  },
-  shopeeOrderTotal: {
-    fontWeight: 'bold',
-    color: '#EE4D2D',
-  },
   emptyBox: {
     padding: 32,
     alignItems: 'center',
+    gap: 8,
   },
   emptyText: {
     fontSize: 14,
