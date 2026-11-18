@@ -25,6 +25,7 @@ import {
 } from '../data/database';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
+import AppFooter from '../components/AppFooter';
 import { showAlert, showConfirm } from '../utils/alertHelper';
 
 type FilterValue = 'All' | (typeof ORDER_STATUSES)[number];
@@ -202,6 +203,7 @@ const OrderHistoryScreen: React.FC = () => {
           </View>
         }
         contentContainerStyle={styles.listContent}
+        ListFooterComponent={<AppFooter />}
         renderItem={({ item }) => {
           const meta = getStatusMeta(item.status);
           return (

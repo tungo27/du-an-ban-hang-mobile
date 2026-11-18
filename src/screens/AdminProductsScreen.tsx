@@ -9,6 +9,8 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import {
   useNavigation,
@@ -67,6 +69,7 @@ const AdminProductsScreen: React.FC = () => {
   });
 
   // Add / edit form
+  const [formModalOpen, setFormModalOpen] = useState<boolean>(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [name, setName] = useState<string>('');
   const [price, setPrice] = useState<string>('');
@@ -135,6 +138,17 @@ const AdminProductsScreen: React.FC = () => {
     }
   };
 
+  // The product form is only rendered inside a modal, opened from the Add button.
+  const openAddForm = () => {
+    resetForm();
+    setFormModalOpen(true);
+  };
+
+  const closeFormModal = () => {
+    setFormModalOpen(false);
+    resetForm();
+  };
+
   const handleSaveProduct = async () => {
     const priceNum = Number(price);
     const saleNum = salePrice.trim() ? Number(salePrice) : null;
@@ -176,6 +190,7 @@ const AdminProductsScreen: React.FC = () => {
     }
 
     resetForm();
+    setFormModalOpen(false);
     await loadData();
   };
 
@@ -192,6 +207,7 @@ const AdminProductsScreen: React.FC = () => {
     setDescription(prod.description || '');
     setSelectedCatId(prod.categoryId);
     setImage(prod.img);
+    setFormModalOpen(true);
   };
 
   const handleSoftDelete = (prod: Product) => {
@@ -290,132 +306,17 @@ const AdminProductsScreen: React.FC = () => {
           <View>
             <Header subtitle="Product Management" />
 
-            <View style={styles.formCard}>
-              <View style={styles.formTitleRow}>
-                <Ionicons
-                  name={editingProduct ? 'create-outline' : 'add-circle-outline'}
-                  size={16}
-                  color="#1E3A8A"
-                />
-                <Text style={styles.formTitle}>
-                  {editingProduct
-                    ? `EDIT PRODUCT #${editingProduct.id}`
-                    : 'ADD NEW PRODUCT'}
+            <View style={styles.topBar}>
+              <View style={styles.titleRow}>
+                <Ionicons name="cube-outline" size={18} color="#1E3A8A" />
+                <Text style={styles.title}>
+                  PRODUCTS ({categoryProducts.length})
                 </Text>
               </View>
-
-              <Text style={styles.label}>Product name (*)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. TuTu Sneaker Pro by Ngo Minh Tu"
-                placeholderTextColor="#94A3B8"
-                value={name}
-                onChangeText={setName}
-              />
-
-              <View style={styles.inlineFieldRow}>
-                <View style={styles.inlineField}>
-                  <Text style={styles.label}>Price (VND) (*)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="450000"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
-                    value={price}
-                    onChangeText={setPrice}
-                  />
-                </View>
-                <View style={styles.inlineField}>
-                  <Text style={styles.label}>Sale price</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. 399000"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
-                    value={salePrice}
-                    onChangeText={setSalePrice}
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.label}>Stock quantity (*)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. 20"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={stock}
-                onChangeText={setStock}
-              />
-
-              <Text style={styles.label}>Category (*)</Text>
-              <View style={styles.chipRow}>
-                {categories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[styles.chip, selectedCatId === cat.id && styles.chipActive]}
-                    onPress={() => setSelectedCatId(cat.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        selectedCatId === cat.id && styles.chipTextActive,
-                      ]}
-                    >
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.label}>Description</Text>
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Product description at TuTu Store..."
-                placeholderTextColor="#94A3B8"
-                multiline
-                value={description}
-                onChangeText={setDescription}
-              />
-
-              <Text style={styles.label}>Product image</Text>
-              <View style={styles.chipRow}>
-                {PRESET_IMAGES.map((preset) => (
-                  <TouchableOpacity
-                    key={preset.value}
-                    style={[styles.chip, image === preset.value && styles.chipActive]}
-                    onPress={() => setImage(preset.value)}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        image === preset.value && styles.chipTextActive,
-                      ]}
-                    >
-                      {preset.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity style={styles.pickImageBtn} onPress={pickFromLibrary}>
-                  <Ionicons name="images-outline" size={12} color="#FFFFFF" />
-                  <Text style={styles.pickImageText}>Library</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.formActionRow}>
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProduct}>
-                  <Ionicons name="checkmark-done-outline" size={14} color="#FFFFFF" />
-                  <Text style={styles.saveBtnText}>
-                    {editingProduct ? 'Save Changes' : 'Add Product'}
-                  </Text>
-                </TouchableOpacity>
-                {editingProduct && (
-                  <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
-                    <Ionicons name="close-outline" size={14} color="#FFFFFF" />
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <TouchableOpacity style={styles.addProductBtn} onPress={openAddForm}>
+                <Ionicons name="add-circle-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.addProductText}>Add Product</Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.filterSection}>
@@ -594,6 +495,152 @@ const AdminProductsScreen: React.FC = () => {
           ) : null
         }
       />
+
+      {/* Add / Edit Product Modal - opened only from the Add Product button or an Edit action */}
+      <Modal
+        visible={formModalOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={closeFormModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalBackdrop}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeaderRow}>
+              <View style={styles.formTitleRow}>
+                <Ionicons
+                  name={editingProduct ? 'create-outline' : 'add-circle-outline'}
+                  size={16}
+                  color="#1E3A8A"
+                />
+                <Text style={styles.formTitle}>
+                  {editingProduct
+                    ? `EDIT PRODUCT #${editingProduct.id}`
+                    : 'ADD NEW PRODUCT'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={closeFormModal}>
+                <Ionicons name="close-outline" size={18} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <Text style={styles.label}>Product name (*)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. TuTu Sneaker Pro by Ngo Minh Tu"
+                placeholderTextColor="#94A3B8"
+                value={name}
+                onChangeText={setName}
+              />
+
+              <View style={styles.inlineFieldRow}>
+                <View style={styles.inlineField}>
+                  <Text style={styles.label}>Price (VND) (*)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="450000"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    value={price}
+                    onChangeText={setPrice}
+                  />
+                </View>
+                <View style={styles.inlineField}>
+                  <Text style={styles.label}>Sale price</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. 399000"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    value={salePrice}
+                    onChangeText={setSalePrice}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.label}>Stock quantity (*)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 20"
+                placeholderTextColor="#94A3B8"
+                keyboardType="numeric"
+                value={stock}
+                onChangeText={setStock}
+              />
+
+              <Text style={styles.label}>Category (*)</Text>
+              <View style={styles.chipRow}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.chip, selectedCatId === cat.id && styles.chipActive]}
+                    onPress={() => setSelectedCatId(cat.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        selectedCatId === cat.id && styles.chipTextActive,
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.label}>Description</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Product description at TuTu Store..."
+                placeholderTextColor="#94A3B8"
+                multiline
+                value={description}
+                onChangeText={setDescription}
+              />
+
+              <Text style={styles.label}>Product image</Text>
+              <View style={styles.chipRow}>
+                {PRESET_IMAGES.map((preset) => (
+                  <TouchableOpacity
+                    key={preset.value}
+                    style={[styles.chip, image === preset.value && styles.chipActive]}
+                    onPress={() => setImage(preset.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        image === preset.value && styles.chipTextActive,
+                      ]}
+                    >
+                      {preset.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.pickImageBtn} onPress={pickFromLibrary}>
+                  <Ionicons name="images-outline" size={12} color="#FFFFFF" />
+                  <Text style={styles.pickImageText}>Library</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.formActionRow}>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProduct}>
+                  <Ionicons name="checkmark-done-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.saveBtnText}>
+                    {editingProduct ? 'Save Changes' : 'Add Product'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelBtn} onPress={closeFormModal}>
+                  <Ionicons name="close-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -601,15 +648,29 @@ const AdminProductsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   listContent: { paddingBottom: 32 },
-  formCard: {
-    backgroundColor: '#FFFFFF',
-    margin: 12,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
-  formTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  title: { fontSize: 15, fontWeight: 'bold', color: '#1E293B' },
+  addProductBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addProductText: { color: '#FFFFFF', fontSize: 12, fontWeight: 'bold' },
+  formTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
   formTitle: { fontSize: 15, fontWeight: 'bold', color: '#1E3A8A' },
   label: { fontSize: 12, fontWeight: '600', color: '#334155', marginBottom: 5 },
   input: {
@@ -802,6 +863,32 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    maxHeight: '90%',
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalCloseBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

@@ -18,6 +18,7 @@ import AdminUsersScreen from './src/screens/AdminUsersScreen';
 import AdminCategoriesScreen from './src/screens/AdminCategoriesScreen';
 import AdminProductsScreen from './src/screens/AdminProductsScreen';
 import AdminOrdersScreen from './src/screens/AdminOrdersScreen';
+import FloatingCartButton from './src/components/FloatingCartButton';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -105,6 +106,7 @@ export default function App() {
             options={{ title: 'Order Management' }}
           />
         </Stack.Navigator>
+        <FloatingCartButton />
       </NavigationContainer>
     </SafeAreaProvider>
   );

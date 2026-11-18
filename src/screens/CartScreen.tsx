@@ -27,6 +27,7 @@ import {
 } from '../data/database';
 import { formatPrice } from '../utils/formatPrice';
 import Header from '../components/Header';
+import AppFooter from '../components/AppFooter';
 import ProductCard from '../components/ProductCard';
 import { showConfirm, showAlert } from '../utils/alertHelper';
 
@@ -291,7 +292,12 @@ const CartScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         }
-        ListFooterComponent={renderRecommendations() || undefined}
+        ListFooterComponent={
+          <>
+            {renderRecommendations()}
+            <AppFooter />
+          </>
+        }
       />
 
       {items.length > 0 && (

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomTabParamList } from '../types/navigation';
 import HomeScreen from '../screens/HomeScreen';
 import ProductsScreen from '../screens/ProductsScreen';
@@ -23,6 +24,9 @@ export { notifyAuthChanged };
 
 const BottomTabNavigator: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const insets = useSafeAreaInsets();
+  // Keep the tab labels above the iPhone home indicator.
+  const bottomInset = insets.bottom > 0 ? insets.bottom : 0;
 
   const syncUser = useCallback(async () => {
     const user = await getCurrentUser();
@@ -51,9 +55,9 @@ const BottomTabNavigator: React.FC = () => {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#CBD5E1',
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: 64 + bottomInset,
+          paddingBottom: bottomInset > 0 ? bottomInset + 4 : 10,
+          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,

@@ -29,6 +29,7 @@ import {
   User,
 } from '../data/database';
 import Header from '../components/Header';
+import AppFooter from '../components/AppFooter';
 import CategorySelector from '../components/CategorySelector';
 import ProductCard from '../components/ProductCard';
 import { showAlert } from '../utils/alertHelper';
@@ -307,6 +308,7 @@ const ProductsScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={renderHeader()}
         contentContainerStyle={styles.listContent}
+        ListFooterComponent={<AppFooter />}
         renderItem={({ item }) => (
           <ProductCard
             product={item}

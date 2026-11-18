@@ -21,6 +21,7 @@ import {
   User,
 } from '../data/database';
 import Header from '../components/Header';
+import AppFooter from '../components/AppFooter';
 import { showAlert, showConfirm } from '../utils/alertHelper';
 
 const AccountScreen: React.FC = () => {
@@ -255,6 +256,8 @@ const AccountScreen: React.FC = () => {
           </View>
         )}
       </View>
+
+      <AppFooter />
     </ScrollView>
   );
 };
